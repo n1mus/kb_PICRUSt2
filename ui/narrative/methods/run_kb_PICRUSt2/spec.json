@@ -1,0 +1,55 @@
+{
+    "ver": "0.0.1",
+    "authors": [
+        "suminw"
+    ],
+    "contact": "",
+    "categories": ["active"],
+    "widgets": {
+        "input": null,
+        "output": "no-display"
+    },
+    "parameters": [ 
+        {
+            "id": "amplicon_set_upa",
+            "optional": false,
+            "advanced": false,
+            "allow_multiple": false,
+            "default_values": [ "" ],
+            "field_type": "text",
+            "text_options": {
+                "valid_ws_types": ["KBaseExperiments.AmpliconSet"]
+            }
+        }
+   ],
+    "behavior": {
+        "service-mapping": {
+            "url": "",
+            "name": "kb_PICRUSt2",
+            "method": "run_kb_PICRUSt2",
+            "input_mapping": [
+                {
+                    "narrative_system_variable": "workspace",
+                    "target_property": "workspace_name"
+                },{
+                    "narrative_system_variable": "workspace_id",
+                    "target_property": "workspace_id"
+                },{
+                    "input_parameter": "amplicon_set_upa",
+                    "target_property": "amplicon_set_upa",
+                    "target_type_transform": "resolved-ref"
+                }
+            ],
+            "output_mapping": [
+                {
+                    "service_method_output_path": [0,"report_name"],
+                    "target_property": "report_name"
+                },{
+                    "service_method_output_path": [0,"report_ref"],
+                    "target_property": "report_ref"
+                }
+            ]
+        }
+    },
+    "job_id_output_field": "docker"
+}
