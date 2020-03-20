@@ -14,6 +14,9 @@ RUN conda install --yes --name picrust2  --channel bioconda --channel conda-forg
 
 RUN pip install pandas numpy
 
+#RUN cp /miniconda/envs/picrust2/bin/conda /miniconda/bin/conda
+
+RUN apt-get update && apt-get install --yes vim
 
 # -----------------------------------------
 

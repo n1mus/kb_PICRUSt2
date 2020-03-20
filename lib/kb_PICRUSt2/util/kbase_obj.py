@@ -17,8 +17,9 @@ pd.set_option('display.max_colwidth', 20)
 
 class AmpliconSet:
 
-    def __init__(self, upa):
+    def __init__(self, upa, test=True):
         self.upa = upa
+        self.test = test
 
         self._get_obj()
         self._to_fasta()
@@ -29,8 +30,6 @@ class AmpliconSet:
         self.obj = Var.dfu.get_objects({
             'object_refs': [self.upa]
             })['data'][0]['data']
-
-        dprint(self.obj)
 
         self.amp_mat_upa = self.obj['amplicon_matrix_ref']
 
@@ -43,9 +42,12 @@ class AmpliconSet:
         amplicon_d = self.obj['amplicons']
         
         with open(seq_flpth, 'w') as fp:
-            for ASV_id, d in amplicon_d.items():
+            for i, (ASV_id, d) in enumerate(amplicon_d.items()):
                 fp.write('>' + ASV_id + '\n')
                 fp.write(d['consensus_sequence'] + '\n')
+
+                if self.test and i > 5:
+                    break
               
         self.seq_flpth = seq_flpth
 
@@ -58,12 +60,11 @@ class AmpliconSet:
 
 class AmpliconMatrix:
 
-    def __init__(self, upa, amp_set: AmpliconSet):
+    def __init__(self, upa, amp_set: AmpliconSet, test=True):
         self.upa = upa
         self.amp_set = amp_set
 
         self._get_obj()
-        self._to_OTU_table()
         self._to_seq_abundance_table()
 
 
@@ -72,9 +73,6 @@ class AmpliconMatrix:
             'object_refs': [self.upa]
             })['data'][0]['data']
 
-        dprint(self.obj)
-
-         
 
     def _to_seq_abundance_table(self):
 
@@ -84,8 +82,6 @@ class AmpliconMatrix:
         row_ids = self.obj['data']['row_ids']
         col_ids = self.obj['data']['col_ids']
 
-        dprint('data', run=locals())
-
         data = pd.DataFrame(
             data, 
             index=row_ids, # ASV Ids 
@@ -93,57 +89,12 @@ class AmpliconMatrix:
             )
         data.index.name = "ASV_Id"
 
-        dprint('data', run=locals())
-
         self.seq_abundance_table_flpth = os.path.join(Var.sub_dir, 'study_seqs.tsv')
 
         data.to_csv(self.seq_abundance_table_flpth, sep='\t')
 
 
        
-
-
-    def _to_OTU_table(self):
-
-        logging.info(f"Parsing AmpliconMatrix data from object")
-
-        data = np.array(self.obj['data']['values'], dtype=float)
-        row_ids = self.obj['data']['row_ids']
-        col_ids = self.obj['data']['col_ids']
-
-        dprint('data', run=locals())
-
-        data = pd.DataFrame(
-            data, 
-            index=self._get_taxonomy_l(row_ids), 
-            columns=col_ids
-            )
-        data.index.name = "taxonomy"
-        data['OTU_Id'] = row_ids # ?
-        data = data[['OTU_Id'] + col_ids]
-
-        dprint('data', run=locals())
-
-        self.taxon_table_flpth = os.path.join(Var.sub_dir, 'taxon_table.tsv')
-
-        data.to_csv(self.taxon_table_flpth, sep='\t')
-
-        
-
-    def _get_taxonomy_l(self, amplicon_id_l):
-        NUM_TAX_LVL = 7
-
-        amplicon_d = self.amp_set.obj['amplicons']
-        taxonomy_l = []
-
-        for amplicon_id in amplicon_id_l:
-            taxonomy = amplicon_d[amplicon_id]['taxonomy']['lineage'][:NUM_TAX_LVL]
-            taxonomy = ';'.join(taxonomy)
-            taxonomy_l.append(taxonomy)
-
-        dprint(taxonomy_l)
-
-        return taxonomy_l
 
 
 
