@@ -108,15 +108,13 @@ class kb_PICRUSt2:
         
         
         out_dir = os.path.join(Var.sub_dir, 'PICRUSt2_output')
-
-
         log_flpth = os.path.join(Var.sub_dir, 'log.txt')
 
 
 
-        cmd = [
-            Var.conda_483_flpth,
-            'run --prefix /miniconda/envs/picrust2',
+        cmd_pipeline = ' '.join([
+            'set -o pipefail &&',
+            'source activate picrust2 &&',
             Var.picrust2_pipeline_flpth,
             '-s', amp_set.seq_flpth,
             '-i', amp_mat.seq_abundance_table_flpth,
@@ -124,11 +122,32 @@ class kb_PICRUSt2:
             '--per_sequence_contrib',
             '-p 8',
             '--verbose',
-            #'|& tee', log_flpth
-            ]
+            '| tee', log_flpth,
+            ])
         
-        
-        cmd = ' '.join(cmd)
+    
+
+        cmd_description = ' \\\n'.join([
+            'source activate picrust2 &&',
+            'add_descriptions.py -i EC_metagenome_out/pred_metagenome_unstrat.tsv.gz -m EC'
+            '                    -o EC_metagenome_out/pred_metagenome_unstrat_descrip.tsv.gz',
+            '&&',
+            'add_descriptions.py -i KO_metagenome_out/pred_metagenome_unstrat.tsv.gz -m KO'
+            '                    -o KO_metagenome_out/pred_metagenome_unstrat_descrip.tsv.gz',
+            '&&',
+            'add_descriptions.py -i pathways_out/path_abun_unstrat.tsv.gz -m METACYC'
+            '                    -o pathways_out/path_abun_unstrat_descrip.tsv.gz'
+            ])
+
+
+        cmd_debug_stderr = ' '.join([
+            'sdfasdfsfd'
+            ])
+
+        cmd_debug_stdout = ' '.join([
+            'ping google.com',
+            '|& tee x'
+            ])
 
 
         #
@@ -137,17 +156,38 @@ class kb_PICRUSt2:
         ####
         #####
 
-        logging.info(f'Running PICRUSt2 via cmd `{cmd}`')
+        def check(cmd, completed_proc):
+            if completed_proc.returncode != 0:
+                raise Exception(
+                    f"Command {cmd} returned "
+                    f"with non-zero exit status {completed_proc.returncode} "
+                    f"and error {completed_proc.stderr.decode('utf-8')}"
+                    )
 
 
-        completed_proc = subprocess.run(cmd, shell=True, executable='/bin/bash', stdout=sys.stdout, stderr=sys.stderr)
+        """
+        logging.info(f"Running cmd {cmd_debug_stdout}")
+        completed_proc = subprocess.run(cmd_debug_stdout, cwd='/kb/module/work/tmp', shell=True, executable='/bin/bash', stdout=sys.stdout, stderr=subprocess.PIPE)
+        check(cmd_debug_stdout, completed_proc)
 
 
-        if completed_proc.returncode != 0:
-            raise Exception(
-                f"PICRUST2 command {cmd} returned "
-                f"with non-zero exit status {completed_proc.returncode}"
-                )
+        logging.info(f"Running cmd {cmd_debug_stderr}")
+        completed_proc = subprocess.run(cmd_debug_stderr, shell=True, executable='/bin/bash', stdout=sys.stdout, stderr=subprocess.PIPE)
+        check(cmd_debug_stderr, completed_proc)
+        """
+
+
+        logging.info(f'Running PICRUSt2 via command `{cmd_pipeline}`')
+        
+        completed_proc = subprocess.run(cmd_pipeline, shell=True, executable='/bin/bash', stdout=sys.stdout, stderr=subprocess.PIPE)
+        check(cmd_pipeline, completed_proc)
+
+
+
+        logging.info(f'Adding descriptions via command `{cmd_description}`')
+
+        completed_proc = subprocess.run(cmd_description, cwd=out_dir, shell=True, executable='/bin/bash', stdout=sys.stdout, stderr=subprocess.PIPE)
+        check(cmd_description, completed_proc)
 
 
         #

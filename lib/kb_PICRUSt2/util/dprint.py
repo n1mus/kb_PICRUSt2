@@ -7,7 +7,7 @@ import time
 
 MAX_LINES = 70
 print = functools.partial(print, flush=True)
-subprocess.run = functools.partial(subprocess.run, stdout=subprocess.PIPE, stderr=subprocess.PIPE, shell=True)
+subprocess.run = functools.partial(subprocess.run, stdout=sys.stdout, stderr=sys.stderr, shell=True, executable='/bin/bash')
 
 #TODO decouple dprint and drun?
 #TODO time

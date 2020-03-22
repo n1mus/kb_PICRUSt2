@@ -16,7 +16,9 @@ RUN pip install pandas numpy
 
 #RUN cp /miniconda/envs/picrust2/bin/conda /miniconda/bin/conda
 
-RUN apt-get update && apt-get install --yes vim
+RUN apt-get update && apt-get install --yes vim iputils-ping
+
+ENV PYTHONUNBUFFERED=True
 
 # -----------------------------------------
 

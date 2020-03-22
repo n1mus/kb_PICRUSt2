@@ -17,7 +17,7 @@ pd.set_option('display.max_colwidth', 20)
 
 class AmpliconSet:
 
-    def __init__(self, upa, test=True):
+    def __init__(self, upa, test=False):
         self.upa = upa
         self.test = test
 
@@ -46,7 +46,7 @@ class AmpliconSet:
                 fp.write('>' + ASV_id + '\n')
                 fp.write(d['consensus_sequence'] + '\n')
 
-                if self.test and i > 5:
+                if self.test and i > 20:
                     break
               
         self.seq_flpth = seq_flpth
@@ -60,7 +60,7 @@ class AmpliconSet:
 
 class AmpliconMatrix:
 
-    def __init__(self, upa, amp_set: AmpliconSet, test=True):
+    def __init__(self, upa, amp_set: AmpliconSet):
         self.upa = upa
         self.amp_set = amp_set
 
