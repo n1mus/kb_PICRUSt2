@@ -193,12 +193,12 @@ class kb_PICRUSt2:
             completed_proc = subprocess.run(cmd_pipeline)
             check(cmd_pipeline, completed_proc)
 
-
+            """
             logging.info(f'Adding descriptions via command `{cmd_description}`')
 
             completed_proc = subprocess.run(cmd_description)
             check(cmd_description, completed_proc)
-
+            """
 
 
         #

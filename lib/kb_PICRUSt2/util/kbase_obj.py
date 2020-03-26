@@ -107,10 +107,12 @@ class AmpliconSet:
 
 
     def _get_obj(self):
-        self.obj = Var.dfu.get_objects({
+        obj = Var.dfu.get_objects({
             'object_refs': [self.upa]
-            })['data'][0]['data']
-
+            })
+        
+        self.name = obj['data'][0]['info'][1]
+        self.obj = obj['data'][0]['data']
         self.amp_mat_upa = self.obj['amplicon_matrix_ref']
 
 

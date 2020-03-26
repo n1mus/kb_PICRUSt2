@@ -9,6 +9,7 @@ from kb_PICRUSt2.kb_PICRUSt2Impl import kb_PICRUSt2
 from kb_PICRUSt2.kb_PICRUSt2Server import MethodContext
 from kb_PICRUSt2.authclient import KBaseAuth as _KBaseAuth
 
+from kb_PICRUSt2.util.varstash import Var
 from kb_PICRUSt2.util.dprint import dprint
 from kb_PICRUSt2.util.kbase_obj import AttributeMapping
 
@@ -33,13 +34,13 @@ class kb_PICRUSt2Test(unittest.TestCase):
             self.ctx, {
                 'amplicon_set_upa': enigmaFirst50_amp_set_upa,
                 **self.params_ws,
-                **params_debug,
+                #**params_debug,
                 }
             )
 
-        row_attrmap = AttributeMapping(Var.objects_created[0])
-        instances = row_attrmap.obj['instances']
-        attributes = row_attrmap.obj['attributes']
+       row_attrmap = AttributeMapping(Var.objects_created[0])
+       instances = row_attrmap.obj['instances']
+       attributes = row_attrmap.obj['attributes']
 
 
 
