@@ -4,6 +4,7 @@ import time
 import unittest
 from configparser import ConfigParser
 import uuid
+import pandas as pd
 
 from kb_PICRUSt2.kb_PICRUSt2Impl import kb_PICRUSt2
 from kb_PICRUSt2.kb_PICRUSt2Server import MethodContext
@@ -34,7 +35,7 @@ class kb_PICRUSt2Test(unittest.TestCase):
             self.ctx, {
                 'amplicon_set_upa': enigmaFirst50_amp_set_upa,
                 **self.params_ws,
-                #**params_debug,
+                **params_debug,
                 }
             )
 
@@ -53,6 +54,8 @@ class kb_PICRUSt2Test(unittest.TestCase):
         # id to traits
         answers_d = self.parse_answers_file()
 
+        html_l = []
+
         for id in results_d:
             assert id in answers_d
 
@@ -62,16 +65,33 @@ class kb_PICRUSt2Test(unittest.TestCase):
             if res != ans:
                 res_l = res.split(':')
                 ans_l = ans.split(':')
-                assert set(ans_l).issubset(res_l)
-                
-                html = '<p>' + ':'.join([res if res in ans_l else '<b>' + res + '</b>' for res in res_l]) + '</p>'
+
+                subset = set(ans_l).issubset(res_l)
+
+                all_l = list(set(res_l + ans_l))
+
+                html = []
+
+                for func in all_l:
+                    if func not in ans_l:
+                        func = '<b>' + func + '</b>'
+                    elif func not in res_l:
+                        func = '<i>' + func + '</i>'
+
+                html = '<p>' + ':'.join(html) + '</p>'
+                if subset:
+                    html = '__ans<=res__' + html
                 html_l.append(html)
 
+        len_original = len(html_l)
         html_l = list(set(html_l))
+        len_dedup = len(html_l)
 
+        html_l.append(f'original num mismatches: {len_original}, dedup num mismatches: {len_dedup}')
 
         with open(f'/kb/module/work/tmp/{uuid.uuid4()}.html', 'w') as fp:
             fp.write('\n'.join(html_l))
+
 
     @staticmethod
     def parse_answers_file():
