@@ -5,11 +5,12 @@ import os
 import sys
 import subprocess
 import uuid
+import functools
 
 from installed_clients.KBaseReportClient import KBaseReport
 from installed_clients.DataFileUtilClient import DataFileUtil
 
-from .util.kbase_obj import AmpliconSet, AmpliconMatrix
+from .util.kbase_obj import AmpliconSet, AmpliconMatrix, AttributeMapping
 from .util.dprint import dprint
 from .util.varstash import Var
 
@@ -49,14 +50,17 @@ class kb_PICRUSt2:
 
 
         Var.update({
+            'debug': True,
             'shared_folder': self.shared_folder,
             'callback_url': self.callback_url,
             'dfu': DataFileUtil(self.callback_url),
             'sub_dir': os.path.join(self.shared_folder, str(uuid.uuid4())),
             'suffix': '_' + str(uuid.uuid4()),
             'warnings': [],
-            'picrust2_pipeline_flpth': '/miniconda/envs/picrust2/bin/picrust2_pipeline.py',
-            'conda_483_flpth': '/miniconda/envs/picrust2/bin/conda',
+            'objects_created': [],
+            'picrust2_pckg_dir': '/miniconda/envs/picrust2/lib/python3.6/site-packages/picrust2',
+            #'picrust2_pipeline_flpth': '/miniconda/envs/picrust2/bin/picrust2_pipeline.py',
+            #'conda_483_flpth': '/miniconda/envs/picrust2/bin/conda',
             })
 
         os.mkdir(Var.sub_dir)
@@ -96,7 +100,8 @@ class kb_PICRUSt2:
         logging.info('Loading AmpliconSet and AmpliconMatrix')
 
         amp_set = AmpliconSet(params['amplicon_set_upa'])
-        amp_mat = AmpliconMatrix(amp_set.get_amplicon_matrix_upa(), amp_set) 
+        amp_mat = AmpliconMatrix(amp_set.amp_mat_upa, amp_set) 
+        row_attrmap = AttributeMapping(amp_mat.row_attrmap_upa)
 
 
 
@@ -115,12 +120,12 @@ class kb_PICRUSt2:
         cmd_pipeline = ' '.join([
             'set -o pipefail &&',
             'source activate picrust2 &&',
-            Var.picrust2_pipeline_flpth,
+            'picrust2_pipeline.py',
             '-s', amp_set.seq_flpth,
             '-i', amp_mat.seq_abundance_table_flpth,
             '-o', out_dir,
             '--per_sequence_contrib',
-            '-p 8',
+            '-p 6',
             '--verbose',
             '| tee', log_flpth,
             ])
@@ -141,10 +146,12 @@ class kb_PICRUSt2:
 
 
         cmd_debug_stderr = ' '.join([
+            'source activate picrust &&',
             'sdfasdfsfd'
             ])
 
         cmd_debug_stdout = ' '.join([
+            'source activate picrust2 &&',
             'ping google.com',
             '|& tee x'
             ])
@@ -156,45 +163,87 @@ class kb_PICRUSt2:
         ####
         #####
 
+        subprocess.run = functools.partial(
+            subprocess.run, shell=True, executable='/bin/bash', stdout=sys.stdout, stderr=subprocess.PIPE)
+
+
         def check(cmd, completed_proc):
             if completed_proc.returncode != 0:
                 raise Exception(
-                    f"Command {cmd} returned "
-                    f"with non-zero exit status {completed_proc.returncode} "
-                    f"and error {completed_proc.stderr.decode('utf-8')}"
+                    f"Command: `{cmd}` exited "
+                    f"with non-zero return code: {completed_proc.returncode} "
+                    f"and error: {completed_proc.stderr.decode('utf-8')}"
                     )
 
 
         """
         logging.info(f"Running cmd {cmd_debug_stdout}")
-        completed_proc = subprocess.run(cmd_debug_stdout, cwd='/kb/module/work/tmp', shell=True, executable='/bin/bash', stdout=sys.stdout, stderr=subprocess.PIPE)
+        completed_proc = subprocess.run(cmd_debug_stdout, cwd='/kb/module/work/tmp')
         check(cmd_debug_stdout, completed_proc)
 
 
         logging.info(f"Running cmd {cmd_debug_stderr}")
-        completed_proc = subprocess.run(cmd_debug_stderr, shell=True, executable='/bin/bash', stdout=sys.stdout, stderr=subprocess.PIPE)
+        completed_proc = subprocess.run(cmd_debug_stderr)
         check(cmd_debug_stderr, completed_proc)
         """
 
+        if not (Var.debug and params.get('skip_run')):
+            logging.info(f'Running PICRUSt2 via command `{cmd_pipeline}`')
+            
+            completed_proc = subprocess.run(cmd_pipeline)
+            check(cmd_pipeline, completed_proc)
 
-        logging.info(f'Running PICRUSt2 via command `{cmd_pipeline}`')
+
+            logging.info(f'Adding descriptions via command `{cmd_description}`')
+
+            completed_proc = subprocess.run(cmd_description)
+            check(cmd_description, completed_proc)
+
+
+
+        #
+        ##
+        ### AttributeMapping
+        ####
+        #####
+
+
+
+
+        if Var.debug and params.get('skip_run'):
+            out_dir = '/kb/module/test/data/PICRUSt2_output'
+
+
+        path_abun_predictions_tsv_gz_flpth = os.path.join(
+            out_dir, 'pathways_out/path_abun_predictions.tsv.gz') 
+
+        func2desc_flpth = os.path.join(
+            Var.picrust2_pckg_dir, 'default_files/description_mapfiles/metacyc_pathways_info.txt.gz')
         
-        completed_proc = subprocess.run(cmd_pipeline, shell=True, executable='/bin/bash', stdout=sys.stdout, stderr=subprocess.PIPE)
-        check(cmd_pipeline, completed_proc)
+        id2traits_d = row_attrmap.parse_picrust2_traits(path_abun_predictions_tsv_gz_flpth, func2desc_flpth)
+        row_attrmap.add_attribute(id2traits_d)
+        row_attrmap_upa_new = row_attrmap.save()
 
+        amp_mat.update_row_attributemapping_ref(row_attrmap_upa_new)
+        amp_mat_upa_new = amp_mat.save()         
 
+        amp_set.update_amplicon_matrix_ref(amp_mat_upa_new)
+        amp_set_upa_new = amp_set.save()
+        
 
-        logging.info(f'Adding descriptions via command `{cmd_description}`')
+        Var.objects_created = [row_attrmap_upa_new, amp_mat_upa_new, amp_set_upa_new]
 
-        completed_proc = subprocess.run(cmd_description, cwd=out_dir, shell=True, executable='/bin/bash', stdout=sys.stdout, stderr=subprocess.PIPE)
-        check(cmd_description, completed_proc)
-
+        
 
         #
         ##
         ### return files
         ####
         #####
+
+        if Var.debug and params.get('skip_retFiles'):
+            return row_attrmap_upa_new
+
 
         def dir_to_shock(dir_path, name, description):
             '''

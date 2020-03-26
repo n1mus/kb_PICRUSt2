@@ -3,25 +3,50 @@ import os
 import time
 import unittest
 from configparser import ConfigParser
+import uuid
 
 from kb_PICRUSt2.kb_PICRUSt2Impl import kb_PICRUSt2
 from kb_PICRUSt2.kb_PICRUSt2Server import MethodContext
 from kb_PICRUSt2.authclient import KBaseAuth as _KBaseAuth
 
+from kb_PICRUSt2.util.dprint import dprint
+from kb_PICRUSt2.util.kbase_obj import AttributeMapping
+
 from installed_clients.WorkspaceClient import Workspace
 
 
+params_debug = {
+    'skip_run': True,
+    'skip_retFiles': True,
+    }
+
+TRAIT = 'PiCrust2 Traits'
+
+
 enigma_amp_set_upa = "48255/26/3"
+enigmaFirst50_amp_set_upa = '48402/6/2'
 
 class kb_PICRUSt2Test(unittest.TestCase):
 
     def test(self):
        ret = self.serviceImpl.run_kb_PICRUSt2(
             self.ctx, {
-                'workspace_name': self.wsName,
-                'amplicon_set_upa': enigma_amp_set_upa
+                'amplicon_set_upa': enigmaFirst50_amp_set_upa,
+                **self.params_ws,
+                **params_debug,
                 }
             )
+
+        row_attrmap = AttributeMapping(Var.objects_created[0])
+        instances = row_attrmap.obj['instances']
+        attributes = row_attrmap.obj['attributes']
+
+
+
+
+
+        
+
 
 
     @classmethod
@@ -50,6 +75,12 @@ class kb_PICRUSt2Test(unittest.TestCase):
                         'authenticated': 1})
         cls.wsURL = cls.cfg['workspace-url']
         cls.wsClient = Workspace(cls.wsURL)
+        cls.wsName = 'kb_faprotax_' + str(uuid.uuid4())                                                 
+        cls.wsId = cls.wsClient.create_workspace({'workspace': cls.wsName})[0]                      
+        cls.params_ws = {                                                                           
+            'workspace_id': cls.wsId,                                                               
+            'workspace_name': cls.wsName,                                                           
+            }                                                                                       
         cls.serviceImpl = kb_PICRUSt2(cls.cfg)
         cls.scratch = cls.cfg['scratch']
         cls.callback_url = os.environ['SDK_CALLBACK_URL']

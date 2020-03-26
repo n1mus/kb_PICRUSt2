@@ -5,14 +5,17 @@ import sys
 import os
 import time
 
+from .varstash import Var
+
 MAX_LINES = 70
-print = functools.partial(print, flush=True)
 subprocess.run = functools.partial(subprocess.run, stdout=sys.stdout, stderr=sys.stderr, shell=True, executable='/bin/bash')
 
-#TODO decouple dprint and drun?
-#TODO time
+# TODO time, where
 def dprint(*args, run=False, subproc_run_kwargs={}, print_kwargs={}):
-    print = functools.partial(globals()['print'], **print_kwargs)
+    if not Var.debug:
+        return
+
+    print = functools.partial(__builtins__['print'], **print_kwargs)
 
     def print_format(arg):
         if isinstance(arg, (dict, list)):
@@ -33,11 +36,6 @@ def dprint(*args, run=False, subproc_run_kwargs={}, print_kwargs={}):
             print('>> ' + arg)
             if run in ['cli', 'shell']:
                 completed_proc = subprocess.run(arg, **subproc_run_kwargs)
-                retcode = completed_proc.returncode
-                stdout = completed_proc.stdout.decode('utf-8')
-                stderr = completed_proc.stderr.decode('utf-8')
-                print_format(stdout)
-                print_format(stderr)
             elif isinstance(run, dict):
                 print_format(eval(arg, run))
             else:
@@ -46,11 +44,8 @@ def dprint(*args, run=False, subproc_run_kwargs={}, print_kwargs={}):
             print_format(arg)
         print()
     print('--------------------------------------------------------------')
-    # return last run
-    if run and run in ['cli', 'shell']:
-        return (retcode, stdout, stderr)
 
-
+# TODO
 def where_am_i(f):
     '''
     Decorator
