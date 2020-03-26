@@ -30,7 +30,7 @@ enigmaFirst50_amp_set_upa = '48402/6/2'
 class kb_PICRUSt2Test(unittest.TestCase):
 
     def test(self):
-       ret = self.serviceImpl.run_kb_PICRUSt2(
+        ret = self.serviceImpl.run_kb_PICRUSt2(
             self.ctx, {
                 'amplicon_set_upa': enigmaFirst50_amp_set_upa,
                 **self.params_ws,
@@ -38,9 +38,9 @@ class kb_PICRUSt2Test(unittest.TestCase):
                 }
             )
 
-       row_attrmap = AttributeMapping(Var.objects_created[0])
-       instances = row_attrmap.obj['instances']
-       attributes = row_attrmap.obj['attributes']
+        row_attrmap = AttributeMapping(Var.objects_created[0])
+        instances = row_attrmap.obj['instances']
+        attributes = row_attrmap.obj['attributes']
 
         # find index in attribute list
         for i, attribute_d in enumerate(attribute_d_l):
