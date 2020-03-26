@@ -39,8 +39,8 @@ class kb_PICRUSt2Test(unittest.TestCase):
             )
 
         row_attrmap = AttributeMapping(Var.objects_created[0])
-        instances = row_attrmap.obj['instances']
-        attributes = row_attrmap.obj['attributes']
+        instances_d = row_attrmap.obj['instances']
+        attribute_d_l = row_attrmap.obj['attributes']
 
         # find index in attribute list
         for i, attribute_d in enumerate(attribute_d_l):
