@@ -55,6 +55,8 @@ class kb_PICRUSt2Test(unittest.TestCase):
         # id to traits
         answers_d = self.parse_answers_file()
 
+        dprint('results_d', 'answers_d', run=locals())
+
         html_l = []
 
         for id in results_d:

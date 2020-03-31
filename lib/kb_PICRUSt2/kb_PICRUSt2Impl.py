@@ -114,6 +114,7 @@ class kb_PICRUSt2:
         
         out_dir = os.path.join(Var.sub_dir, 'PICRUSt2_output')
         log_flpth = os.path.join(Var.sub_dir, 'log.txt')
+        cmd_flpth = os.path.join(Var.sub_dir, 'cmd.txt')
 
 
 
@@ -145,16 +146,6 @@ class kb_PICRUSt2:
             ])
 
 
-        cmd_debug_stderr = ' '.join([
-            'source activate picrust &&',
-            'sdfasdfsfd'
-            ])
-
-        cmd_debug_stdout = ' '.join([
-            'source activate picrust2 &&',
-            'ping google.com',
-            '|& tee x'
-            ])
 
 
         #
@@ -176,16 +167,8 @@ class kb_PICRUSt2:
                     )
 
 
-        """
-        logging.info(f"Running cmd {cmd_debug_stdout}")
-        completed_proc = subprocess.run(cmd_debug_stdout, cwd='/kb/module/work/tmp')
-        check(cmd_debug_stdout, completed_proc)
-
-
-        logging.info(f"Running cmd {cmd_debug_stderr}")
-        completed_proc = subprocess.run(cmd_debug_stderr)
-        check(cmd_debug_stderr, completed_proc)
-        """
+        subprocess.run('echo "{cmd_pipeline}" > {cmd_flpth}')
+        subprocess.run('echo "{cmd_description}" >> {cmd_flpth}')
 
         if not (Var.debug and params.get('skip_run')):
             logging.info(f'Running PICRUSt2 via command `{cmd_pipeline}`')
@@ -206,8 +189,6 @@ class kb_PICRUSt2:
         #####
 
 
-
-
         if Var.debug and params.get('skip_run'):
             out_dir = '/kb/module/test/data/PICRUSt2_output'
 
@@ -215,10 +196,7 @@ class kb_PICRUSt2:
         path_abun_predictions_tsv_gz_flpth = os.path.join(
             out_dir, 'pathways_out/path_abun_predictions.tsv.gz') 
 
-        func2desc_flpth = os.path.join(
-            Var.picrust2_pckg_dir, 'default_files/description_mapfiles/metacyc_pathways_info.txt.gz')
-        
-        id2traits_d = row_attrmap.parse_picrust2_traits(path_abun_predictions_tsv_gz_flpth, func2desc_flpth)
+        id2traits_d = row_attrmap.parse_picrust2_traits(path_abun_predictions_tsv_gz_flpth)
         row_attrmap.add_attribute(id2traits_d)
         row_attrmap_upa_new = row_attrmap.save()
 

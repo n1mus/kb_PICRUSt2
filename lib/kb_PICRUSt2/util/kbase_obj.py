@@ -33,7 +33,7 @@ class AttributeMapping:
         self.obj = obj['data'][0]['data']
 
 
-    def parse_picrust2_traits(self, id_x_func_tsv_gz_flpth, func_to_desc_tsv_filepath) -> dict:
+    def parse_picrust2_traits(self, id_x_func_tsv_gz_flpth) -> dict:
 
         map_flpth = os.path.join(Var.picrust2_pckg_dir, 
             'default_files/description_mapfiles/metacyc_pathways_info.txt.gz')
