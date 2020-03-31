@@ -38,3 +38,18 @@ description : |
     <p>Curabitur auctor, metus at tristique euismod, odio elit tincidunt neque, a facilisis sem massa convallis dolor. Interdum et malesuada fames ac ante ipsum primis in faucibus. Nunc ut hendrerit tellus. Nunc lacinia laoreet finibus. Etiam vitae sagittis enim. Fusce consectetur porta est eu pretium. In hac habitasse platea dictumst. Integer pellentesque sit amet sapien id venenatis. Nullam ac risus at orci eleifend aliquet. Vestibulum elit purus, euismod a nibh quis, pellentesque semper leo. Curabitur ullamcorper felis hendrerit nunc egestas, sit amet pharetra sapien porttitor. Class aptent taciti sociosqu ad litora torquent per conubia nostra, per inceptos himenaeos. Maecenas hendrerit ipsum a ligula aliquet vestibulum. Duis a ante urna. Aenean ante neque, rhoncus id luctus ut, accumsan vel nunc.</p>
 
     <p>Pellentesque accumsan aliquet magna, id consectetur tellus condimentum eu. Suspendisse elit dui, ornare ac leo eget, tincidunt feugiat orci. Maecenas auctor gravida lacinia. Mauris interdum nisi vel gravida varius. Nullam tempus, purus eget posuere aliquet, odio elit semper massa, quis facilisis massa odio vitae lacus. Fusce varius enim a mi vehicula tempus. Maecenas faucibus tellus ipsum, at venenatis ipsum auctor et. Suspendisse sem mi, dignissim id porta efficitur, auctor eget magna. Vivamus varius purus nulla, porttitor euismod lorem cursus quis. Nulla sit amet eros nec sem ultrices pulvinar.</p>
+
+
+publications: 
+
+    -
+        display-text: |
+            EPA-NG, <a href="https://github.com/Pbdas/epa-ng">https://github.com/Pbdas/epa-ng</a>
+            Pierre Barbera, Alexey M Kozlov, Lucas Czech, Benoit Morel, Diego Darriba, Tomáš Flouri, Alexandros Stamatakis, EPA-ng: Massively Parallel Evolutionary Placement of Genetic Sequences, Systematic Biology, Volume 68, Issue 2, March 2019, Pages 365–369, <a href="https://doi.org/10.1093/sysbio/syy054">https://doi.org/10.1093/sysbio/syy054</a>
+
+    -
+        display-text: |
+            Lucas Czech, Pierre Barbera, Alexandros Stamatakis, Genesis and Gappa: processing, analyzing and visualizing phylogenetic (placement) data, Bioinformatics, , btaa070, <a href="https://doi.org/10.1093/bioinformatics/btaa070">https://doi.org/10.1093/bioinformatics/btaa070</a>
+
+    -
+        display-text: |

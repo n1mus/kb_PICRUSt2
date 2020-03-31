@@ -4,14 +4,14 @@ import subprocess
 import sys
 import os
 import time
-
+import logging
 from .varstash import Var
 
-MAX_LINES = 70
-subprocess.run = functools.partial(subprocess.run, stdout=sys.stdout, stderr=sys.stderr, shell=True, executable='/bin/bash')
+subprocess.run = functools.partial(
+        subprocess.run, stdout=sys.stdout, stderr=sys.stderr, shell=True, executable='/bin/bash')
 
 # TODO time, where
-def dprint(*args, run=False, subproc_run_kwargs={}, print_kwargs={}):
+def dprint(*args, run=False, max_lines=70, subproc_run_kwargs={}, print_kwargs={}):
     if not Var.debug:
         return
 
@@ -19,14 +19,10 @@ def dprint(*args, run=False, subproc_run_kwargs={}, print_kwargs={}):
 
     def print_format(arg):
         if isinstance(arg, (dict, list)):
-            try:
-                arg_json = json.dumps(arg, indent=3, default=str)
-                if arg_json.count('\n') > MAX_LINES:
-                    arg_json = '\n'.join(arg_json.split('\n')[0:MAX_LINES] + ['...'])
-                print(arg_json)
-            except:
-                print('(dprint error: did not successfully dump as json)')
-                print(arg)
+            arg_json = json.dumps(arg, indent=3, default=str)
+            if arg_json.count('\n') > max_lines:
+                arg_json = '\n'.join(arg_json.split('\n')[0:max_lines] + ['...'])
+            print(arg_json)
         else:
             print(arg, end=' ')
 
@@ -36,6 +32,7 @@ def dprint(*args, run=False, subproc_run_kwargs={}, print_kwargs={}):
             print('>> ' + arg)
             if run in ['cli', 'shell']:
                 completed_proc = subprocess.run(arg, **subproc_run_kwargs)
+                retcode = completed_proc.returncode
             elif isinstance(run, dict):
                 print_format(eval(arg, run))
             else:
@@ -44,6 +41,9 @@ def dprint(*args, run=False, subproc_run_kwargs={}, print_kwargs={}):
             print_format(arg)
         print()
     print('--------------------------------------------------------------')
+    # return last run
+    if run and run in ['cli', 'shell']:
+        return retcode
 
 # TODO
 def where_am_i(f):
