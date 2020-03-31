@@ -33,11 +33,12 @@ class kb_PICRUSt2Test(unittest.TestCase):
     def test(self):
         ret = self.serviceImpl.run_kb_PICRUSt2(
             self.ctx, {
-                'amplicon_set_upa': enigmaFirst50_amp_set_upa,
+                'amplicon_set_upa': enigma_amp_set_upa,
                 **self.params_ws,
-                **params_debug,
+                #**params_debug,
                 }
             )
+        return
 
         row_attrmap = AttributeMapping(Var.objects_created[0])
         instances_d = row_attrmap.obj['instances']
