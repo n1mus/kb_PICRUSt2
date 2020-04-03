@@ -34,10 +34,10 @@ class kb_PICRUSt2Test(unittest.TestCase):
     def test(self):
         ret = self.serviceImpl.run_kb_PICRUSt2(
             self.ctx, {
-                'amplicon_set_upa': enigmaFirst50_amp_set_upa,
+                'amplicon_set_upa': enigma_amp_set_upa,
                 'output_name': 'an_output_name',
                 **self.params_ws,
-                **params_debug,
+                #**params_debug,
                 }
             )
 
