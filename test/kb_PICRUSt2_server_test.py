@@ -18,11 +18,12 @@ from installed_clients.WorkspaceClient import Workspace
 
 
 params_debug = {
-    'skip_run': True,
-    'skip_retFiles': True,
+    #'skip_run': True,
+    'mini_test': True,
+    #'skip_retFiles': True,
     }
 
-TRAIT = 'PiCrust2 Traits'
+TRAIT_IN_OBJ = 'PiCrust2 Traits'
 
 
 enigma_amp_set_upa = "48255/26/3"
@@ -34,12 +35,14 @@ class kb_PICRUSt2Test(unittest.TestCase):
         ret = self.serviceImpl.run_kb_PICRUSt2(
             self.ctx, {
                 'amplicon_set_upa': enigmaFirst50_amp_set_upa,
+                'output_name': 'an_output_name',
                 **self.params_ws,
                 **params_debug,
                 }
             )
 
-        row_attrmap = AttributeMapping(Var.objects_created[0])
+
+        row_attrmap = AttributeMapping(Var.objects_created[0]['ref'])
         instances_d = row_attrmap.obj['instances']
         attribute_d_l = row_attrmap.obj['attributes']
 
@@ -54,12 +57,9 @@ class kb_PICRUSt2Test(unittest.TestCase):
         # id to traits
         answers_d = self.parse_answers_file()
 
-        dprint('results_d', 'answers_d', run=locals())
-
         html_l = []
 
         for id in results_d:
-            assert id in answers_d
 
             res = results_d[id]
             ans = answers_d[id]
@@ -68,40 +68,39 @@ class kb_PICRUSt2Test(unittest.TestCase):
                 res_l = res.split(':')
                 ans_l = ans.split(':')
 
-                subset = set(ans_l).issubset(res_l)
+                if sorted(res_l) == sorted(ans_l):
+                    continue
 
-                all_l = list(set(res_l + ans_l))
+                all_l = sorted(list(set(res_l + ans_l)))
 
-                html = []
+                line = []
 
                 for func in all_l:
-                    if func not in ans_l:
-                        func = '<b>' + func + '</b>'
-                    elif func not in res_l:
-                        func = '<i>' + func + '</i>'
+                    if func in res_l and func not in ans_l:
+                        func = '<font color="blue"><b>' + func + '</b></font>'
+                    elif func in ans_l and func not in res_l:
+                        func = '<font color="red"><b>' + func + '</b></font>'
+                    line.append(func)
 
-                html = '<p>' + ':'.join(html) + '</p>'
-                if subset:
-                    html = '__ans<=res__' + html
-                html_l.append(html)
+                line = '<p>' + ':'.join(line) + '</p>'
+                html_l.append(line)
 
-        len_original = len(html_l)
+        mismatch_len_original = len(html_l)
         html_l = list(set(html_l))
-        len_dedup = len(html_l)
+        mismatch_len_dedup = len(html_l)
 
-        html_l.append(f'original num mismatches: {len_original}, dedup num mismatches: {len_dedup}')
+        dprint('mismatch_len_original', 'mismatch_len_dedup', run=locals())
 
-        with open(f'/kb/module/work/tmp/{uuid.uuid4()}.html', 'w') as fp:
+        with open(f'/kb/module/work/tmp/diff_{uuid.uuid4()}.html', 'w') as fp:
             fp.write('\n'.join(html_l))
 
 
     @staticmethod
     def parse_answers_file():
-        answers_flpth = '/kb/module/test/data/OTUMetaData_reduced.tsv'
+        ANSWERS_FLPTH = '/kb/module/test/data/OTUMetaData_reduced.tsv'
         answers_df = pd.read_csv(
-            answers_flpth, sep='\t', header=0, index_col='#OTU ID', usecols=['#OTU ID', 'PiCrust2 Traits']).fillna('')
-        answers_d = answers_df.to_dict(orient='index')
-        answers_d = {key: value['PiCrust2 Traits'] for key, value in answers_d.items()}
+            ANSWERS_FLPTH, sep='\t', header=0, index_col='#OTU ID', usecols=['#OTU ID', 'PiCrust2 Traits']).fillna('')
+        answers_d = answers_df['PiCrust2 Traits'].to_dict()
         return answers_d      
 
 

@@ -99,8 +99,8 @@ class kb_PICRUSt2:
 
         logging.info('Loading AmpliconSet and AmpliconMatrix')
 
-        amp_set = AmpliconSet(params['amplicon_set_upa'])
-        amp_mat = AmpliconMatrix(amp_set.amp_mat_upa, amp_set) 
+        amp_set = AmpliconSet(params['amplicon_set_upa'], mini_test=params.get('mini_test'))
+        amp_mat = AmpliconMatrix(amp_set.amp_mat_upa) 
         row_attrmap = AttributeMapping(amp_mat.row_attrmap_upa)
 
 
@@ -114,8 +114,6 @@ class kb_PICRUSt2:
         
         out_dir = os.path.join(Var.sub_dir, 'PICRUSt2_output')
         log_flpth = os.path.join(Var.sub_dir, 'log.txt')
-        cmd_flpth = os.path.join(Var.sub_dir, 'cmd.txt')
-
 
 
         cmd_pipeline = ' '.join([
@@ -134,18 +132,23 @@ class kb_PICRUSt2:
     
 
         cmd_description = ' \\\n'.join([
+            'cd %s &&' % out_dir,
             'source activate picrust2 &&',
-            'add_descriptions.py -i EC_metagenome_out/pred_metagenome_unstrat.tsv.gz -m EC'
+            'add_descriptions.py -i EC_metagenome_out/pred_metagenome_unstrat.tsv.gz -m EC',
             '                    -o EC_metagenome_out/pred_metagenome_unstrat_descrip.tsv.gz',
             '&&',
-            'add_descriptions.py -i KO_metagenome_out/pred_metagenome_unstrat.tsv.gz -m KO'
+            'add_descriptions.py -i KO_metagenome_out/pred_metagenome_unstrat.tsv.gz -m KO',
             '                    -o KO_metagenome_out/pred_metagenome_unstrat_descrip.tsv.gz',
             '&&',
-            'add_descriptions.py -i pathways_out/path_abun_unstrat.tsv.gz -m METACYC'
+            'add_descriptions.py -i pathways_out/path_abun_unstrat.tsv.gz -m METACYC',
             '                    -o pathways_out/path_abun_unstrat_descrip.tsv.gz'
             ])
 
 
+
+        with open(os.path.join(Var.sub_dir, 'cmd.txt'), 'w') as fp:
+            fp.write(cmd_pipeline + '\n\n')
+            fp.write(cmd_description)
 
 
         #
@@ -167,10 +170,8 @@ class kb_PICRUSt2:
                     )
 
 
-        subprocess.run('echo "{cmd_pipeline}" > {cmd_flpth}')
-        subprocess.run('echo "{cmd_description}" >> {cmd_flpth}')
-
         if not (Var.debug and params.get('skip_run')):
+
             logging.info(f'Running PICRUSt2 via command `{cmd_pipeline}`')
             
             completed_proc = subprocess.run(cmd_pipeline)
@@ -204,12 +205,14 @@ class kb_PICRUSt2:
         amp_mat_upa_new = amp_mat.save()         
 
         amp_set.update_amplicon_matrix_ref(amp_mat_upa_new)
-        amp_set_upa_new = amp_set.save()
+        amp_set_upa_new = amp_set.save(name=params.get('output_name'))
         
 
-        Var.objects_created = [row_attrmap_upa_new, amp_mat_upa_new, amp_set_upa_new]
-
-        
+        Var.objects_created = [
+            {'ref': row_attrmap_upa_new, 'description': 'Added attributes for `PiCrust2 Traits`'}, 
+            {'ref': amp_mat_upa_new, 'description': 'Updated row AttributeMapping reference'},
+            {'ref': amp_set_upa_new, 'description': 'Updated AmpliconMatrix reference'},
+            ]        
 
         #
         ##
@@ -218,7 +221,7 @@ class kb_PICRUSt2:
         #####
 
         if Var.debug and params.get('skip_retFiles'):
-            return row_attrmap_upa_new
+            return
 
 
         def dir_to_shock(dir_path, name, description):
@@ -263,7 +266,8 @@ class kb_PICRUSt2:
             'warnings': Var.warnings,
             'file_links': [shockInfo_retFiles],
             'report_object_name': 'kb_PICRUSt2_report',
-            'workspace_name': params['workspace_name']
+            'workspace_name': params['workspace_name'],
+            'objects_created': Var.objects_created,
             }
 
         kbr = KBaseReport(self.callback_url)

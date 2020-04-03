@@ -10,8 +10,11 @@ from .varstash import Var
 subprocess.run = functools.partial(
         subprocess.run, stdout=sys.stdout, stderr=sys.stderr, shell=True, executable='/bin/bash')
 
+TAG_WIDTH = 100
+MAX_LINES = 70
+
 # TODO time, where
-def dprint(*args, run=False, max_lines=70, subproc_run_kwargs={}, print_kwargs={}):
+def dprint(*args, run=False, max_lines=MAX_LINES, subproc_run_kwargs={}, print_kwargs={}):
     if not Var.debug:
         return
 
@@ -26,7 +29,7 @@ def dprint(*args, run=False, max_lines=70, subproc_run_kwargs={}, print_kwargs={
         else:
             print(arg, end=' ')
 
-    print('##############################################################')
+    print('#' * TAG_WIDTH)
     for arg in args:
         if run:
             print('>> ' + arg)
@@ -40,7 +43,7 @@ def dprint(*args, run=False, max_lines=70, subproc_run_kwargs={}, print_kwargs={
         else:
             print_format(arg)
         print()
-    print('--------------------------------------------------------------')
+    print('-' * TAG_WIDTH)
     # return last run
     if run and run in ['cli', 'shell']:
         return retcode
