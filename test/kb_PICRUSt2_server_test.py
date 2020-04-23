@@ -10,7 +10,7 @@ from kb_PICRUSt2.kb_PICRUSt2Impl import kb_PICRUSt2
 from kb_PICRUSt2.kb_PICRUSt2Server import MethodContext
 from kb_PICRUSt2.authclient import KBaseAuth as _KBaseAuth
 
-from kb_PICRUSt2.util.varstash import Var
+from kb_PICRUSt2.util.config import _globals
 from kb_PICRUSt2.util.dprint import dprint
 from kb_PICRUSt2.util.kbase_obj import AttributeMapping
 
@@ -18,9 +18,10 @@ from installed_clients.WorkspaceClient import Workspace
 
 
 params_debug = {
-    #'skip_run': True,
+    #'skip_obj': True,
+    'skip_run': True,
     'mini_test': True,
-    #'skip_retFiles': True,
+    'skip_retFiles': True,
     }
 
 TRAIT_IN_OBJ = 'PiCrust2 Traits'
@@ -37,12 +38,13 @@ class kb_PICRUSt2Test(unittest.TestCase):
                 'amplicon_set_upa': enigma_amp_set_upa,
                 'output_name': 'an_output_name',
                 **self.params_ws,
-                #**params_debug,
+                **params_debug,
                 }
             )
 
+        return
 
-        row_attrmap = AttributeMapping(Var.objects_created[0]['ref'])
+        row_attrmap = AttributeMapping(_globals.objects_created[0]['ref'])
         instances_d = row_attrmap.obj['instances']
         attribute_d_l = row_attrmap.obj['attributes']
 

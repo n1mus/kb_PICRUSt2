@@ -6,13 +6,15 @@ import sys
 import subprocess
 import uuid
 import functools
+from dotmap import DotMap
 
 from installed_clients.KBaseReportClient import KBaseReport
 from installed_clients.DataFileUtilClient import DataFileUtil
 
 from .util.kbase_obj import AmpliconSet, AmpliconMatrix, AttributeMapping
 from .util.dprint import dprint
-from .util.varstash import Var
+from .util.config import _globals, reset
+from .util import report
 
 #END_HEADER
 
@@ -43,27 +45,22 @@ class kb_PICRUSt2:
     # be found
     def __init__(self, config):
         #BEGIN_CONSTRUCTOR
-        self.callback_url = os.environ['SDK_CALLBACK_URL']
-        self.shared_folder = config['scratch']
         logging.basicConfig(format='%(created)s %(levelname)s: %(message)s',
                             level=logging.INFO)
 
-
-        Var.update({
-            'debug': True,
-            'shared_folder': self.shared_folder,
-            'callback_url': self.callback_url,
-            'dfu': DataFileUtil(self.callback_url),
-            'sub_dir': os.path.join(self.shared_folder, str(uuid.uuid4())),
-            'suffix': '_' + str(uuid.uuid4()),
-            'warnings': [],
-            'objects_created': [],
+        callback_url = os.environ['SDK_CALLBACK_URL']
+        workspace_url = config['workspace-url']
+        shared_folder = config['scratch']
+        
+        self._globals = { # shared by all API-method runs (?)
+            'callback_url': callback_url,
+            'shared_folder': config['scratch'], 
+            'dfu': DataFileUtil(callback_url),
+            'kbr': KBaseReport(callback_url),
             'picrust2_pckg_dir': '/miniconda/envs/picrust2/lib/python3.6/site-packages/picrust2',
             #'picrust2_pipeline_flpth': '/miniconda/envs/picrust2/bin/picrust2_pipeline.py',
             #'conda_483_flpth': '/miniconda/envs/picrust2/bin/conda',
-            })
-
-        os.mkdir(Var.sub_dir)
+            }
         
         #END_CONSTRUCTOR
         pass
@@ -79,13 +76,21 @@ class kb_PICRUSt2:
         # ctx is the context object
         # return variables are: output
         #BEGIN run_kb_PICRUSt2
-        
-        Var.update({
-            'ctx': ctx,
-            'params': params
-            }) 
 
         dprint('params', run=locals())
+        
+
+        reset(_globals) # clear all fields but `debug`
+
+        _globals.update({
+            **self._globals,
+            'params': params,
+            'run_dir': os.path.join(self._globals['shared_folder'], str(uuid.uuid4())),
+            'warnings': [],
+            'objects_created': [],
+            })
+
+        os.mkdir(_globals.run_dir)
     
 
 
@@ -96,12 +101,24 @@ class kb_PICRUSt2:
         #####
 
 
+        if params.get('skip_obj'):
+            logging.info('Skipping obj')
 
-        logging.info('Loading AmpliconSet and AmpliconMatrix')
+            dummy = DotMap(
+                seq_flpth = 'dummy',
+                seq_abundance_table_flpth = 'dummy'
+            )
 
-        amp_set = AmpliconSet(params['amplicon_set_upa'], mini_test=params.get('mini_test'))
-        amp_mat = AmpliconMatrix(amp_set.amp_mat_upa) 
-        row_attrmap = AttributeMapping(amp_mat.row_attrmap_upa)
+            amp_set = dummy
+            amp_mat = dummy
+
+        else:
+            
+            logging.info('Loading AmpliconSet and AmpliconMatrix')
+
+            amp_set = AmpliconSet(params['amplicon_set_upa'], mini_test=params.get('mini_test'))
+            amp_mat = AmpliconMatrix(amp_set.amp_mat_upa) 
+            row_attrmap = AttributeMapping(amp_mat.row_attrmap_upa)
 
 
 
@@ -112,8 +129,8 @@ class kb_PICRUSt2:
         #####
         
         
-        out_dir = os.path.join(Var.sub_dir, 'PICRUSt2_output')
-        log_flpth = os.path.join(Var.sub_dir, 'log.txt')
+        out_dir = os.path.join(_globals.run_dir, 'PICRUSt2_output')
+        log_flpth = os.path.join(_globals.run_dir, 'log.txt')
 
 
         cmd_pipeline = ' '.join([
@@ -146,7 +163,7 @@ class kb_PICRUSt2:
 
 
 
-        with open(os.path.join(Var.sub_dir, 'cmd.txt'), 'w') as fp:
+        with open(os.path.join(_globals.run_dir, 'cmd.txt'), 'w') as fp:
             fp.write(cmd_pipeline + '\n\n')
             fp.write(cmd_description)
 
@@ -157,30 +174,29 @@ class kb_PICRUSt2:
         ####
         #####
 
-        subprocess.run = functools.partial(
-            subprocess.run, shell=True, executable='/bin/bash', stdout=sys.stdout, stderr=subprocess.PIPE)
+        subproc_run = functools.partial(
+            subprocess.run, shell=True, executable='/bin/bash', stdout=sys.stdout, stderr=sys.stderr)
 
 
-        def check(cmd, completed_proc):
+        def run_check(cmd):
+            logging.info('Running command `%s`' % cmd)
+            completed_proc = subproc_run(cmd)
             if completed_proc.returncode != 0:
                 raise Exception(
                     f"Command: `{cmd}` exited "
-                    f"with non-zero return code: {completed_proc.returncode} "
-                    f"and error: {completed_proc.stderr.decode('utf-8')}"
+                    f"with non-zero return code: `{completed_proc.returncode}`. "
+                    f"Check logs for details"
                     )
 
 
-        if not (Var.debug and params.get('skip_run')):
+        if params.get('skip_run'):
+            logging.info('Skip run')
+            out_dir = '/kb/module/test/data/PICRUSt2_output'
 
-            logging.info(f'Running PICRUSt2 via command `{cmd_pipeline}`')
-            
-            completed_proc = subprocess.run(cmd_pipeline)
-            check(cmd_pipeline, completed_proc)
+        else:
 
-            logging.info(f'Adding descriptions via command `{cmd_description}`')
-
-            completed_proc = subprocess.run(cmd_description)
-            check(cmd_description, completed_proc)
+            run_check(cmd_pipeline)
+            run_check(cmd_description)
 
 
         #
@@ -190,29 +206,82 @@ class kb_PICRUSt2:
         #####
 
 
-        if Var.debug and params.get('skip_run'):
-            out_dir = '/kb/module/test/data/PICRUSt2_output'
+        if params.get('skip_obj'):
+            logging.info('Skip obj')
 
 
-        path_abun_predictions_tsv_gz_flpth = os.path.join(
-            out_dir, 'pathways_out/path_abun_predictions.tsv.gz') 
+        else:
 
-        id2traits_d = row_attrmap.parse_picrust2_traits(path_abun_predictions_tsv_gz_flpth)
-        row_attrmap.add_attribute(id2traits_d)
-        row_attrmap_upa_new = row_attrmap.save()
+            path_abun_predictions_tsv_gz_flpth = os.path.join(
+                out_dir, 'pathways_out/path_abun_predictions.tsv.gz') 
 
-        amp_mat.update_row_attributemapping_ref(row_attrmap_upa_new)
-        amp_mat_upa_new = amp_mat.save()         
+            attribute = 'PICRUSt2 MetaCyc Predictions'
+            source = 'kb_PICRUSt2'
 
-        amp_set.update_amplicon_matrix_ref(amp_mat_upa_new)
-        amp_set_upa_new = amp_set.save(name=params.get('output_name'))
+            id2traits_d = row_attrmap.parse_picrust2_traits(path_abun_predictions_tsv_gz_flpth)
+            row_attrmap.add_attribute_slot(attribute)
+            row_attrmap.update_attribute(id2traits_d, attribute, source)
+            row_attrmap_upa_new = row_attrmap.save()
+
+            amp_mat.update_row_attributemapping_ref(row_attrmap_upa_new)
+            amp_mat_upa_new = amp_mat.save()         
+
+            amp_set.update_amplicon_matrix_ref(amp_mat_upa_new)
+            amp_set_upa_new = amp_set.save(name=params.get('output_name'))
+            
+
+            _globals.objects_created = [
+                {'ref': row_attrmap_upa_new, 'description': 'Added or updated attributes for `%s`' % attribute}, 
+                {'ref': amp_mat_upa_new, 'description': 'Updated row AttributeMapping reference'},
+                {'ref': amp_set_upa_new, 'description': 'Updated AmpliconMatrix reference'},
+                ]        
+
+
+
+        #
+        ##
+        ### html report
+        ####
+        #####
+
+        tsv_flnm_l = [
+            #'EC_predicted.tsv',
+            #'KO_predicted.tsv',
+            #'EC_metagenome/pred_metagenome_unstrat.tsv',
+            #'KO_metagenome/pred_metagenome_unstrat.tsv',
+            #'pathways_out/path_abun_predictions.tsv',
+            #'pathways_out/path_abun_unstrat_per_seq.tsv',
+            'pathways_out/path_abun_unstrat.tsv',
+            ]
+
+        tsv_dir = os.path.join(_globals.shared_folder, str(uuid.uuid4()))
+        os.mkdir(tsv_dir)
+
+
+        for tsv_flnm in tsv_flnm_l:
+            tsv_flpth = os.path.join(out_dir, tsv_flnm)
+            subproc_run(f'gunzip -k {tsv_flpth}.gz  && mv {tsv_flpth} {tsv_dir}')
+            
+
+        tsv_flpth_l = [os.path.join(tsv_dir, tsv_flnm) for tsv_flnm in os.listdir(tsv_dir)]
+
+        dprint('tsv_flpth_l', run=locals())
         
+        global report
 
-        Var.objects_created = [
-            {'ref': row_attrmap_upa_new, 'description': 'Added attributes for `PiCrust2 Traits`'}, 
-            {'ref': amp_mat_upa_new, 'description': 'Updated row AttributeMapping reference'},
-            {'ref': amp_set_upa_new, 'description': 'Updated AmpliconMatrix reference'},
-            ]        
+        html_dir_l = report.get_html_dir_l(tsv_flpth_l)
+
+        html_flnm_l = []
+
+        for html_dir in html_dir_l:
+            for flnm in os.listdir(html_dir):
+                if flnm.endswith('.html'):
+                    html_flnm_l.append(flnm)
+
+
+
+
+
 
         #
         ##
@@ -220,7 +289,7 @@ class kb_PICRUSt2:
         ####
         #####
 
-        if Var.debug and params.get('skip_retFiles'):
+        if params.get('skip_retFiles'):
             return
 
 
@@ -231,47 +300,53 @@ class kb_PICRUSt2:
             name - for regular directories: the name of the flat (zip) file returned to ui
                    for html directories: the name of the html file
             '''
-            dfu_fileToShock_ret = Var.dfu.file_to_shock({
+            dfu_fileToShock_ret = _globals.dfu.file_to_shock({
                 'file_path': dir_path,
                 'make_handle': 0,
                 'pack': 'zip',
                 })
 
-            dir_shockInfo = {
+            return {
                 'shock_id': dfu_fileToShock_ret['shock_id'],
                 'name': name,
                 'description': description
                 }
 
-            return dir_shockInfo
 
 
         shockInfo_retFiles = dir_to_shock(
-            Var.sub_dir, 
+            _globals.run_dir, 
             'picrust2_results.zip',
             'Input for and output generated by PICRUSt2'
             )
 
-
+        shockInfo_htmlDir_l = []
+        for html_flnm, html_dir in zip(html_flnm_l, html_dir_l):
+            shockInfo_htmlDir_l.append(dir_to_shock(
+                html_dir,
+                html_flnm,
+                'A heatmap'
+                ))
 
 
         #
         ##
-        ### report
+        ###
         ####
         #####
         
         
         params_report = {
-            'warnings': Var.warnings,
+            'warnings': _globals.warnings,
             'file_links': [shockInfo_retFiles],
+            'html_links': shockInfo_htmlDir_l,
+            'direct_html_link_index': 0,
             'report_object_name': 'kb_PICRUSt2_report',
             'workspace_name': params['workspace_name'],
-            'objects_created': Var.objects_created,
+            'objects_created': _globals.objects_created,
             }
 
-        kbr = KBaseReport(self.callback_url)
-        report = kbr.create_extended_report(params_report)
+        report = _globals.kbr.create_extended_report(params_report)
 
         output = {
             'report_name': report['name'],

@@ -6,7 +6,7 @@ import sys
 import gzip
 
 from .dprint import dprint
-from .varstash import Var
+from .config import _globals
 
 
 
@@ -30,7 +30,7 @@ class AttributeMapping:
         self._get_obj()
 
     def _get_obj(self):
-        obj = Var.dfu.get_objects({
+        obj = _globals.dfu.get_objects({
             'object_refs': [self.upa]
             })
 
@@ -47,7 +47,7 @@ class AttributeMapping:
 
         ## parse and prep ds
 
-        MAP_FLPTH = os.path.join(Var.picrust2_pckg_dir, # metacyc code to description
+        MAP_FLPTH = os.path.join(_globals.picrust2_pckg_dir, # metacyc code to description
             'default_files/description_mapfiles/metacyc_pathways_info.txt.gz') 
 
         map_df = pd.read_csv(MAP_FLPTH, sep='\t', header=None, index_col=0, compression='gzip')
@@ -76,7 +76,7 @@ class AttributeMapping:
         
 
         
-    def add_attribute(self, id2attr_d, attribute='PiCrust2 Traits'):
+    def update_attribute(self, id2attr_d, attribute, source):
         # find index of attribute
         for ind, attr_d in enumerate(self.obj['attributes']):
             if attr_d['attribute'] == attribute:
@@ -86,14 +86,35 @@ class AttributeMapping:
         for id, attr_l in self.obj['instances'].items():
             attr_l[attr_ind] = id2attr_d.get(id, '')
 
-        dprint('self.obj["instances"]', run=locals())
+        self.obj['attributes'][attr_ind]['source'] = source
+
+
+    def add_attribute_slot(self, attribute):
+        
+        # check if already exists
+        for attr_d in self.obj['attributes']:
+            if attr_d['attribute'] == attribute:
+                msg = 'Adding attribute slot %s to AttributeMapping with name %s, ' % (attribute, self.name) + \
+                      'but that attribute already exists in object'
+                logging.warning(msg)
+                _globals.warnings.append(msg)
+                return
+
+        # append slot to `attributes`
+        self.obj['attributes'].append({
+            'attribute': attribute,
+            })
+
+        # append slots to `instances` 
+        for _, attr_l in self.obj['instances'].items():
+            attr_l.append('')
 
 
 
     def save(self):
         
-        info = Var.dfu.save_objects(
-            {'id': Var.params['workspace_id'],
+        info = _globals.dfu.save_objects(
+            {'id': _globals.params['workspace_id'],
              "objects": [{
                  "type": "KBaseExperiments.AttributeMapping",
                  "data": self.obj,
@@ -122,7 +143,7 @@ class AmpliconSet:
 
 
     def _get_obj(self):
-        obj = Var.dfu.get_objects({
+        obj = _globals.dfu.get_objects({
             'object_refs': [self.upa]
             })
         
@@ -133,7 +154,7 @@ class AmpliconSet:
 
     # TODO move to AttributeMapping
     def _to_fasta(self):
-        seq_flpth = os.path.join(Var.sub_dir, 'study_seqs.fna')
+        seq_flpth = os.path.join(_globals.run_dir, 'study_seqs.fna')
         
         logging.info(f'Writing fasta to {seq_flpth}')
 
@@ -144,7 +165,7 @@ class AmpliconSet:
                 fp.write('>' + ASV_id + '\n')
                 fp.write(d['consensus_sequence'] + '\n')
 
-                if Var.debug and self.mini_test and i > 20:
+                if _globals.debug and self.mini_test and i > 20:
                     break
               
         self.seq_flpth = seq_flpth
@@ -158,8 +179,8 @@ class AmpliconSet:
     def save(self, name=None):
         dprint('self.obj', run=locals())
 
-        info = Var.dfu.save_objects(
-            {'id': Var.params['workspace_id'],
+        info = _globals.dfu.save_objects(
+            {'id': _globals.params['workspace_id'],
              "objects": [{
                  "type": "KBaseExperiments.AmpliconSet",
                  "data": self.obj,
@@ -187,7 +208,7 @@ class AmpliconMatrix:
 
 
     def _get_obj(self):
-        obj = Var.dfu.get_objects({
+        obj = _globals.dfu.get_objects({
             'object_refs': [self.upa]
             })
 
@@ -211,7 +232,7 @@ class AmpliconMatrix:
             )
         data.index.name = "ASV_Id"
 
-        self.seq_abundance_table_flpth = os.path.join(Var.sub_dir, 'study_seqs.tsv')
+        self.seq_abundance_table_flpth = os.path.join(_globals.run_dir, 'study_seqs.tsv')
 
         data.to_csv(self.seq_abundance_table_flpth, sep='\t')
 
@@ -223,8 +244,8 @@ class AmpliconMatrix:
     def save(self, name=None):
         dprint('self.obj', run=locals())
 
-        info = Var.dfu.save_objects(
-            {'id': Var.params['workspace_id'],
+        info = _globals.dfu.save_objects(
+            {'id': _globals.params['workspace_id'],
              "objects": [{
                  "type": "KBaseMatrices.AmpliconMatrix",
                  "data": self.obj,

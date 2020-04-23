@@ -1,21 +1,26 @@
 import functools
-import pprint, json
+import json
 import subprocess
 import sys
 import os
 import time
 import logging
-from .varstash import Var
+import inspect
+import time as _time
 
-subprocess.run = functools.partial(
+from .config import _globals
+
+
+subproc_run = functools.partial(
         subprocess.run, stdout=sys.stdout, stderr=sys.stderr, shell=True, executable='/bin/bash')
 
 TAG_WIDTH = 100
 MAX_LINES = 70
 
-# TODO time, where
-def dprint(*args, run=False, max_lines=MAX_LINES, subproc_run_kwargs={}, print_kwargs={}):
-    if not Var.debug:
+
+def dprint(*args, run=False, where=True, time=False, max_lines=MAX_LINES, subproc_run_kwargs={}, print_kwargs={}):
+
+    if not _globals.debug:
         return
 
     print = functools.partial(__builtins__['print'], **print_kwargs)
@@ -27,14 +32,21 @@ def dprint(*args, run=False, max_lines=MAX_LINES, subproc_run_kwargs={}, print_k
                 arg_json = '\n'.join(arg_json.split('\n')[0:max_lines] + ['...'])
             print(arg_json)
         else:
-            print(arg, end=' ')
+            print(arg)
 
     print('#' * TAG_WIDTH)
+
+    if where:
+        last_frame = inspect.stack()
+        print("(file `%s`)\n(function `%s`)" % (last_frame[1][1], last_frame[1][3]))
+    
     for arg in args:
+        if time:
+            t0 = _time.time()
         if run:
             print('>> ' + arg)
             if run in ['cli', 'shell']:
-                completed_proc = subprocess.run(arg, **subproc_run_kwargs)
+                completed_proc = subproc_run(arg, **subproc_run_kwargs)
                 retcode = completed_proc.returncode
             elif isinstance(run, dict):
                 print_format(eval(arg, run))
@@ -42,16 +54,20 @@ def dprint(*args, run=False, max_lines=MAX_LINES, subproc_run_kwargs={}, print_k
                 assert False
         else:
             print_format(arg)
-        print()
+        if time:
+            t = _time.time() - t0
+            print('[%fs]' % t)
+    
     print('-' * TAG_WIDTH)
-    # return last run
+    
+    # return last retcode
     if run and run in ['cli', 'shell']:
         return retcode
 
-# TODO
+
 def where_am_i(f):
-    '''
-    Decorator
-    '''
-    dprint("where am i? in module " + globals()['__name__'] + " method " + f.__qualname__)
-    return f
+    '''Decorator'''
+    def f_new(*args, **kwargs):
+        dprint("where am i? in module `%s` method `%s`" % (globals()['__name__'], f.__qualname__))
+        f(*args, **kwargs)
+    return f_new

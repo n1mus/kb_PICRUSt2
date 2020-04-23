@@ -13,10 +13,7 @@ RUN conda create --yes --name picrust2 conda=4.8.3
 RUN conda install --yes --name picrust2  --channel bioconda --channel conda-forge picrust2=2.3.0_b 
 
 RUN pip install pandas numpy
-
-#RUN cp /miniconda/envs/picrust2/bin/conda /miniconda/bin/conda
-
-RUN apt-get update && apt-get install --yes vim iputils-ping
+RUN pip install dotmap
 
 ENV PYTHONUNBUFFERED=True
 

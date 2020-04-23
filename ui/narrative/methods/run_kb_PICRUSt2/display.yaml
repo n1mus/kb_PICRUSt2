@@ -28,15 +28,11 @@ parameters :
         ui-name : |
             AmpliconSet
         short-hint : |
-            The first parameter
-        long-hint  : |
-            The first parameter that needs to be entered to drive the method. This might be the first of many.
+            AmpliconSet
     output_name:
         ui-name: |
             New name for updated input object (optional)
         short-hint: |
-            Default is same name, which will save over input object. Enter a different name to avoid saving over
-        long-hint: |
             Default is same name, which will save over input object. Enter a different name to avoid saving over
 
 description : |
