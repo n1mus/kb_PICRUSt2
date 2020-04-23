@@ -4,7 +4,7 @@
 name: PICRUSt2
 
 tooltip: |
-    Perform some kind of method
+    Predict EC, KO, and MetaCyc function from metagenome marker gene profile
 
 screenshots: []
 

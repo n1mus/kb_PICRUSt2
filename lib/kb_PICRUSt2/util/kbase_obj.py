@@ -95,7 +95,7 @@ class AttributeMapping:
         for attr_d in self.obj['attributes']:
             if attr_d['attribute'] == attribute:
                 msg = 'Adding attribute slot %s to AttributeMapping with name %s, ' % (attribute, self.name) + \
-                      'but that attribute already exists in object'
+                      'but that attribute already exists'
                 logging.warning(msg)
                 _globals.warnings.append(msg)
                 return
@@ -119,6 +119,7 @@ class AttributeMapping:
                  "type": "KBaseExperiments.AttributeMapping",
                  "data": self.obj,
                  "name": self.name,
+                 "extra_provenance_input_refs": [self.upa]
              }]})[0]
 
         upa_new = "%s/%s/%s" % (info[6], info[0], info[4])
@@ -182,9 +183,10 @@ class AmpliconSet:
         info = _globals.dfu.save_objects(
             {'id': _globals.params['workspace_id'],
              "objects": [{
-                 "type": "KBaseExperiments.AmpliconSet",
-                 "data": self.obj,
-                 "name": name if name else self.name,
+                "type": "KBaseExperiments.AmpliconSet",
+                "data": self.obj,
+                "name": name if name else self.name,
+                "extra_provenance_input_refs": [self.upa]
              }]})[0]
 
         upa_new = "%s/%s/%s" % (info[6], info[0], info[4])
@@ -250,6 +252,7 @@ class AmpliconMatrix:
                  "type": "KBaseMatrices.AmpliconMatrix",
                  "data": self.obj,
                  "name": name if name else self.name,
+                 "extra_provenance_input_refs": [self.upa]
              }]})[0]
 
         upa_new = "%s/%s/%s" % (info[6], info[0], info[4])
