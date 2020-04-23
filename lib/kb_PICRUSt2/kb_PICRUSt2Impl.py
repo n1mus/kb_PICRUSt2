@@ -143,7 +143,7 @@ class kb_PICRUSt2:
             '--per_sequence_contrib',
             '-p 6',
             '--verbose',
-            '| tee', log_flpth,
+            '|& tee', log_flpth,
             ])
         
     

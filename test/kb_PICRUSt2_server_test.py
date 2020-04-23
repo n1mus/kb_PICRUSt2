@@ -24,87 +24,24 @@ params_debug = {
     'skip_retFiles': True,
     }
 
-TRAIT_IN_OBJ = 'PiCrust2 Traits'
+TRAIT_IN_OBJ = 'PICRUSt2 MetaCyc Predictions'
 
 
 enigma_amp_set_upa = "48255/26/3"
 enigmaFirst50_amp_set_upa = '48402/6/2'
+demo_ampset = '49302/25/10'
 
 class kb_PICRUSt2Test(unittest.TestCase):
 
     def test(self):
         ret = self.serviceImpl.run_kb_PICRUSt2(
             self.ctx, {
-                'amplicon_set_upa': enigma_amp_set_upa,
+                'amplicon_set_upa': demo_ampset,
                 'output_name': 'an_output_name',
                 **self.params_ws,
-                **params_debug,
+                #**params_debug,
                 }
             )
-
-        return
-
-        row_attrmap = AttributeMapping(_globals.objects_created[0]['ref'])
-        instances_d = row_attrmap.obj['instances']
-        attribute_d_l = row_attrmap.obj['attributes']
-
-        # find index in attribute list
-        for i, attribute_d in enumerate(attribute_d_l):
-            if attribute_d['attribute'] == 'PiCrust2 Traits':
-                ind = i
-
-        # id to attribute
-        results_d = {id: attr_l[ind] for id, attr_l in instances_d.items()}
-
-        # id to traits
-        answers_d = self.parse_answers_file()
-
-        html_l = []
-
-        for id in results_d:
-
-            res = results_d[id]
-            ans = answers_d[id]
-
-            if res != ans:
-                res_l = res.split(':')
-                ans_l = ans.split(':')
-
-                if sorted(res_l) == sorted(ans_l):
-                    continue
-
-                all_l = sorted(list(set(res_l + ans_l)))
-
-                line = []
-
-                for func in all_l:
-                    if func in res_l and func not in ans_l:
-                        func = '<font color="blue"><b>' + func + '</b></font>'
-                    elif func in ans_l and func not in res_l:
-                        func = '<font color="red"><b>' + func + '</b></font>'
-                    line.append(func)
-
-                line = '<p>' + ':'.join(line) + '</p>'
-                html_l.append(line)
-
-        mismatch_len_original = len(html_l)
-        html_l = list(set(html_l))
-        mismatch_len_dedup = len(html_l)
-
-        dprint('mismatch_len_original', 'mismatch_len_dedup', run=locals())
-
-        with open(f'/kb/module/work/tmp/diff_{uuid.uuid4()}.html', 'w') as fp:
-            fp.write('\n'.join(html_l))
-
-
-    @staticmethod
-    def parse_answers_file():
-        ANSWERS_FLPTH = '/kb/module/test/data/OTUMetaData_reduced.tsv'
-        answers_df = pd.read_csv(
-            ANSWERS_FLPTH, sep='\t', header=0, index_col='#OTU ID', usecols=['#OTU ID', 'PiCrust2 Traits']).fillna('')
-        answers_d = answers_df['PiCrust2 Traits'].to_dict()
-        return answers_d      
-
 
 
     @classmethod

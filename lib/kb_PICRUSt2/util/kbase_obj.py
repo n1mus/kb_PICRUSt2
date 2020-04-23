@@ -94,7 +94,7 @@ class AttributeMapping:
         # check if already exists
         for attr_d in self.obj['attributes']:
             if attr_d['attribute'] == attribute:
-                msg = 'Adding attribute slot %s to AttributeMapping with name %s, ' % (attribute, self.name) + \
+                msg = 'Adding attribute slot `%s` to AttributeMapping with name `%s`, ' % (attribute, self.name) + \
                       'but that attribute already exists'
                 logging.warning(msg)
                 _globals.warnings.append(msg)
