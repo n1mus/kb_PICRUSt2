@@ -18,28 +18,25 @@ from installed_clients.WorkspaceClient import Workspace
 
 
 params_debug = {
-    #'skip_obj': True,
+    'skip_obj': True,
     'skip_run': True,
     'mini_test': True,
     'skip_retFiles': True,
     }
 
-TRAIT_IN_OBJ = 'PICRUSt2 MetaCyc Predictions'
-
 
 enigma_amp_set_upa = "48255/26/3"
 enigmaFirst50_amp_set_upa = '48402/6/2'
-demo_ampset = '49302/25/10'
 
 class kb_PICRUSt2Test(unittest.TestCase):
 
     def test(self):
         ret = self.serviceImpl.run_kb_PICRUSt2(
             self.ctx, {
-                'amplicon_set_upa': demo_ampset,
+                'amplicon_set_upa': enigma_amp_set_upa,
                 'output_name': 'an_output_name',
                 **self.params_ws,
-                #**params_debug,
+                **params_debug,
                 }
             )
 
