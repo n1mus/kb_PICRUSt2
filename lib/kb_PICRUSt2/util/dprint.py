@@ -14,11 +14,11 @@ from .config import _globals
 subproc_run = functools.partial(
         subprocess.run, stdout=sys.stdout, stderr=sys.stderr, shell=True, executable='/bin/bash')
 
-TAG_WIDTH = 100
+TAG_WIDTH = 80
 MAX_LINES = 70
 
 
-def dprint(*args, run=False, where=True, time=False, max_lines=MAX_LINES, subproc_run_kwargs={}, print_kwargs={}):
+def dprint(*args, run=False, where=False, time=False, max_lines=MAX_LINES, subproc_run_kwargs={}, print_kwargs={}):
 
     if not _globals.debug:
         return

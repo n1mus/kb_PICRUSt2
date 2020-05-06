@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 #BEGIN_HEADER
+import time
 import logging
 import os
 import sys
@@ -12,9 +13,10 @@ from installed_clients.KBaseReportClient import KBaseReport
 from installed_clients.DataFileUtilClient import DataFileUtil
 
 from .util.kbase_obj import AmpliconSet, AmpliconMatrix, AttributeMapping
+from .util.error import *
 from .util.dprint import dprint
 from .util.config import _globals, reset
-from .util import report
+from .util.report import HTMLReportWriter
 
 #END_HEADER
 
@@ -66,7 +68,7 @@ class kb_PICRUSt2:
         pass
 
 
-    def run_kb_PICRUSt2(self, ctx, params):
+    def run_picrust2_pipeline(self, ctx, params):
         """
         This example function accepts any number of parameters and returns results in a KBaseReport
         :param params: instance of mapping from String to unspecified object
@@ -75,7 +77,7 @@ class kb_PICRUSt2:
         """
         # ctx is the context object
         # return variables are: output
-        #BEGIN run_kb_PICRUSt2
+        #BEGIN run_picrust2_pipeline
 
         dprint('params', run=locals())
         
@@ -87,7 +89,6 @@ class kb_PICRUSt2:
             'params': params,
             'run_dir': os.path.join(self._globals['shared_folder'], str(uuid.uuid4())),
             'warnings': [],
-            'objects_created': [],
             })
 
         os.mkdir(_globals.run_dir)
@@ -102,7 +103,7 @@ class kb_PICRUSt2:
 
 
         if params.get('skip_obj'):
-            logging.info('Skipping obj')
+            logging.info('Skip obj')
 
             dummy = DotMap(
                 seq_flpth = 'dummy',
@@ -118,7 +119,12 @@ class kb_PICRUSt2:
 
             amp_set = AmpliconSet(params['amplicon_set_upa'], mini_test=params.get('mini_test'))
             amp_mat = AmpliconMatrix(amp_set.amp_mat_upa) 
-            row_attrmap = AttributeMapping(amp_mat.row_attrmap_upa)
+            if amp_mat.row_attrmap_upa:
+                row_attrmap = AttributeMapping(amp_mat.row_attrmap_upa)
+            else:
+                msg = \
+"Input AmpliconSet's associated AmpliconMatrix does not have associated AttributeMapping to assign traits to"
+                _globals.warnings.append(msg)
 
 
 
@@ -163,11 +169,6 @@ class kb_PICRUSt2:
 
 
 
-        with open(os.path.join(_globals.run_dir, 'cmd.txt'), 'w') as fp:
-            fp.write(cmd_pipeline + '\n\n')
-            fp.write(cmd_description)
-
-
         #
         ##
         ### run
@@ -182,7 +183,7 @@ class kb_PICRUSt2:
             logging.info('Running command `%s`' % cmd)
             completed_proc = subproc_run(cmd)
             if completed_proc.returncode != 0:
-                raise Exception(
+                raise NonZeroReturnException(
                     f"Command: `{cmd}` exited "
                     f"with non-zero return code: `{completed_proc.returncode}`. "
                     f"Check logs for details"
@@ -192,6 +193,7 @@ class kb_PICRUSt2:
         if params.get('skip_run'):
             logging.info('Skip run')
             out_dir = '/kb/module/test/data/PICRUSt2_output'
+            dprint('touch %s' % os.path.join(_globals.run_dir, 'workaround'), run='cli')
 
         else:
 
@@ -201,9 +203,12 @@ class kb_PICRUSt2:
 
         #
         ##
-        ### AttributeMapping
+        ### save objects 
         ####
         #####
+
+
+        objects_created = []
 
 
         if params.get('skip_obj'):
@@ -218,72 +223,64 @@ class kb_PICRUSt2:
             attribute = 'PICRUSt2 MetaCyc Predictions'
             source = 'kb_PICRUSt2'
 
-            id2traits_d = row_attrmap.parse_picrust2_traits(path_abun_predictions_tsv_gz_flpth)
-            row_attrmap.add_attribute_slot(attribute)
-            row_attrmap.update_attribute(id2traits_d, attribute, source)
-            row_attrmap_upa_new = row_attrmap.save()
+            if amp_mat.row_attrmap_upa: # if there's an AttributeMapping, update that and referencing chain
+                id2traits_d = row_attrmap.parse_picrust2_traits(path_abun_predictions_tsv_gz_flpth)
+                row_attrmap.add_attribute_slot(attribute)
+                row_attrmap.update_attribute(id2traits_d, attribute, source)
+                row_attrmap_upa_new = row_attrmap.save()
 
-            amp_mat.update_row_attributemapping_ref(row_attrmap_upa_new)
-            amp_mat_upa_new = amp_mat.save()         
+                amp_mat.update_row_attributemapping_ref(row_attrmap_upa_new)
+                amp_mat_upa_new = amp_mat.save()         
 
-            amp_set.update_amplicon_matrix_ref(amp_mat_upa_new)
-            amp_set_upa_new = amp_set.save(name=params.get('output_name'))
-            
+                amp_set.update_amplicon_matrix_ref(amp_mat_upa_new)
+                amp_set_upa_new = amp_set.save(name=params.get('output_name'))
+                
 
-            _globals.objects_created = [
-                {'ref': row_attrmap_upa_new, 'description': 'Added or updated attribute `%s`' % attribute}, 
-                {'ref': amp_mat_upa_new, 'description': 'Updated row AttributeMapping reference'},
-                {'ref': amp_set_upa_new, 'description': 'Updated AmpliconMatrix reference'},
-                ]        
+                objects_created = [
+                    {'ref': row_attrmap_upa_new, 'description': 'Added or updated attribute `%s`' % attribute}, 
+                    {'ref': amp_mat_upa_new, 'description': 'Updated row AttributeMapping reference'},
+                    {'ref': amp_set_upa_new, 'description': 'Updated AmpliconMatrix reference'},
+                    ]        
 
 
 
         #
         ##
-        ### html report
+        ### heatmap html report
         ####
         #####
 
-        if params.get('skip_heatmap'):
-            logging.info('Skip heatmap')
+        html_links = []
+
+
+        if params.get('skip_report'):
+            logging.info('Skip report')
 
         else:
+
             tsv_flnm_l = [
                 'pathways_out/path_abun_unstrat.tsv', #*
                 #'pathways_out/path_abun_unstrat_per_seq.tsv',
                 #'pathways_out/path_abun_predictions.tsv',
-                'EC_predicted.tsv', #*
-                'KO_predicted.tsv', #*
+                'EC_predicted.tsv', #* bigger
+                'KO_predicted.tsv', #* big
                 #'EC_metagenome/pred_metagenome_unstrat.tsv',
                 #'KO_metagenome/pred_metagenome_unstrat.tsv',
                 ]
 
-            tsv_dir = os.path.join(_globals.shared_folder, str(uuid.uuid4()))
-            os.mkdir(tsv_dir)
-
-            for tsv_flnm in tsv_flnm_l:
-                tsv_flpth = os.path.join(out_dir, tsv_flnm)
-                subproc_run(f'gunzip -k {tsv_flpth}.gz  && mv {tsv_flpth} {tsv_dir}')
-
-            tsv_flpth_l = [os.path.join(tsv_dir, os.path.basename(tsv_flnm)) for tsv_flnm in tsv_flnm_l]
-
-            dprint('tsv_flpth_l', run=locals())
+            tsvgz_flpth_l = [os.path.join(out_dir, tsv_flnm + '.gz') for tsv_flnm in tsv_flnm_l]
             
-            global report
 
-            html_dir_l = report.get_html_dir_l(tsv_flpth_l)
+            t0 = time.time()
+            report_dir, html_flpth = HTMLReportWriter([cmd_pipeline, cmd_description], tsvgz_flpth_l).write()
+            t = time.time() - t0
 
-            html_flnm_l = [
-                os.path.basename(tsv_flnm)[:-4][0] + '_heatmap.html' for tsv_flnm in tsv_flnm_l
-                ]
+            dprint('Done with heatmaps. Took %.2fmin' % (t/60))
 
-            for html_dir, html_flnm in zip(html_dir_l, html_flnm_l):
-                for flnm in os.listdir(html_dir):
-                    if flnm.endswith('.html'):
-                        os.rename(flnm, html_flnm)
-
-
-
+            html_links.append({
+                'path': report_dir,
+                'name': os.path.basename(html_flpth),
+                })
 
 
 
@@ -293,62 +290,28 @@ class kb_PICRUSt2:
         ####
         #####
 
+
         if params.get('skip_retFiles'):
             return
 
+        file_links = [
+            {
+                'path': _globals.run_dir, 
+                'name': 'PICRUSt2_results.zip', 
+                'description': 'Input, output, intermediate files, logs'
+            }
+        ]
 
-        def dir_to_fileType(dir_path, name, **file_kwargs):
-            '''
-            Directory -> shock -> `File` type (see KBaseReport.spec)
-            Good for regular directories or html directories
-            
-            name - for regular directories: the name of the flat (zip) file returned to ui
-                   for html directories: the name of the html file
-            
-            example file_kwargs: label, description
-            '''
-            dfu_fileToShock_ret = _globals.dfu.file_to_shock({
-                'file_path': dir_path,
-                'pack': 'zip',
-                })
-
-            return {
-                'shock_id': dfu_fileToShock_ret['shock_id'],
-                'name': name,
-                **file_kwargs
-                }
-
-
-
-        shockInfo_retFiles = dir_to_fileType(
-            _globals.run_dir, 
-            'picrust2_results.zip',
-            description='Input, output, logs'
-            )
-
-        shockInfo_htmlDir_l = []
-        for html_flnm, html_dir in zip(html_flnm_l, html_dir_l):
-            shockInfo_htmlDir_l.append(dir_to_fileType(
-                html_dir,
-                html_flnm
-                ))
-
-
-        #
-        ##
-        ###
-        ####
-        #####
-        
+       
         
         params_report = {
             'warnings': _globals.warnings,
-            'file_links': [shockInfo_retFiles],
-            'html_links': shockInfo_htmlDir_l,
+            'objects_created': objects_created,
+            'file_links': file_links,
+            'html_links': html_links,
             'direct_html_link_index': 0,
             'report_object_name': 'kb_PICRUSt2_report',
             'workspace_name': params['workspace_name'],
-            'objects_created': _globals.objects_created,
             }
 
         report = _globals.kbr.create_extended_report(params_report)
@@ -358,11 +321,11 @@ class kb_PICRUSt2:
             'report_ref': report['ref'],
         }
 
-        #END run_kb_PICRUSt2
+        #END run_picrust2_pipeline
 
         # At some point might do deeper type checking...
         if not isinstance(output, dict):
-            raise ValueError('Method run_kb_PICRUSt2 return value ' +
+            raise ValueError('Method run_picrust2_pipeline return value ' +
                              'output is not type dict as required.')
         # return the results
         return [output]

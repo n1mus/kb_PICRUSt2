@@ -13,15 +13,17 @@ from kb_PICRUSt2.authclient import KBaseAuth as _KBaseAuth
 from kb_PICRUSt2.util.config import _globals
 from kb_PICRUSt2.util.dprint import dprint
 from kb_PICRUSt2.util.kbase_obj import AttributeMapping
+from kb_PICRUSt2.util.error import *
 
 from installed_clients.WorkspaceClient import Workspace
 
 
 params_debug = {
-    'skip_obj': True,
-    'skip_run': True,
+    #'skip_obj': True,
+    #'skip_run': True,
     'mini_test': True,
-    'skip_retFiles': True,
+    #'skip_report': True,
+    #'skip_retFiles': True,
     }
 
 
@@ -31,7 +33,7 @@ enigmaFirst50_amp_set_upa = '48402/6/2'
 class kb_PICRUSt2Test(unittest.TestCase):
 
     def test(self):
-        ret = self.serviceImpl.run_kb_PICRUSt2(
+        ret = self.serviceImpl.run_picrust2_pipeline(
             self.ctx, {
                 'amplicon_set_upa': enigma_amp_set_upa,
                 'output_name': 'an_output_name',
@@ -39,6 +41,25 @@ class kb_PICRUSt2Test(unittest.TestCase):
                 **params_debug,
                 }
             )
+
+    def test_no_AttributeMapping(self):
+        pass
+
+
+    def test_NonZeroReturnException(self):
+        pass
+
+
+    def test_NoWorkspaceReferenceException(self):
+        pass
+
+
+    def test_ArgumentException(self):
+        pass
+
+
+    def test_large_data(self):
+        pass
 
 
     @classmethod

@@ -215,7 +215,7 @@ class AmpliconMatrix:
             })
 
         self.name = obj['data'][0]['info'][1]
-        self.row_attrmap_upa = obj['data'][0]['data']['row_attributemapping_ref']
+        self.row_attrmap_upa = obj['data'][0]['data'].get('row_attributemapping_ref')
         self.obj = obj['data'][0]['data']
 
 

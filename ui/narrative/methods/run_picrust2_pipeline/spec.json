@@ -37,7 +37,7 @@
         "service-mapping": {
             "url": "",
             "name": "kb_PICRUSt2",
-            "method": "run_kb_PICRUSt2",
+            "method": "run_picrust2_pipeline",
             "input_mapping": [
                 {
                     "narrative_system_variable": "workspace",

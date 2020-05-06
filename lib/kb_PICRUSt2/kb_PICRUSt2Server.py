@@ -338,10 +338,10 @@ class Application(object):
         self.serverlog.set_log_level(6)
         self.rpc_service = JSONRPCServiceCustom()
         self.method_authentication = dict()
-        self.rpc_service.add(impl_kb_PICRUSt2.run_kb_PICRUSt2,
-                             name='kb_PICRUSt2.run_kb_PICRUSt2',
+        self.rpc_service.add(impl_kb_PICRUSt2.run_picrust2_pipeline,
+                             name='kb_PICRUSt2.run_picrust2_pipeline',
                              types=[dict])
-        self.method_authentication['kb_PICRUSt2.run_kb_PICRUSt2'] = 'required'  # noqa
+        self.method_authentication['kb_PICRUSt2.run_picrust2_pipeline'] = 'required'  # noqa
         self.rpc_service.add(impl_kb_PICRUSt2.status,
                              name='kb_PICRUSt2.status',
                              types=[dict])
