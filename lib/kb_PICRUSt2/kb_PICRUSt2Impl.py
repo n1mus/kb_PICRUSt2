@@ -148,7 +148,6 @@ class kb_PICRUSt2:
             '-o', out_dir,
             '--per_sequence_contrib',
             '-p 6',
-            '--verbose',
             '|& tee', log_flpth,
             ])
         
@@ -221,7 +220,7 @@ class kb_PICRUSt2:
                 out_dir, 'pathways_out/path_abun_predictions.tsv.gz') 
 
             attribute = 'PICRUSt2 MetaCyc Predictions'
-            source = 'kb_PICRUSt2'
+            source = 'kb_PICRUSt2/run_picrust2_pipeline'
 
             if amp_mat.row_attrmap_upa: # if there's an AttributeMapping, update that and referencing chain
                 id2traits_d = row_attrmap.parse_picrust2_traits(path_abun_predictions_tsv_gz_flpth)
