@@ -1,9 +1,16 @@
 from dotmap import DotMap
 
-DEBUG = True # toggle for debugging prints/conditionals
+_config = DotMap({
+    'debug': True, # toggle for global debug behavior
+    'metacyc_pathway_code2desc_tsvgz': 
+        '/miniconda/envs/picrust2/lib/python3.6/site-packages/picrust2/default_files/description_mapfiles/metacyc_pathways_info.txt.gz', 
+    #'picrust2_pckg_dir': '/miniconda/envs/picrust2/lib/python3.6/site-packages/picrust2',
+    #'picrust2_pipeline_flpth': '/miniconda/envs/picrust2/bin/picrust2_pipeline.py',
+    #'conda_483_flpth': '/miniconda/envs/picrust2/bin/conda',
+})
 
-_globals = DotMap(debug=DEBUG) # import for global variables ds
+var = DotMap(_config) # app-wide globals container
 
-def reset(dm: DotMap):
-    dm.clear()
-    dm.update({'debug': DEBUG})
+def reset_var():
+    var.clear()
+    var.update(_config)

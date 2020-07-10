@@ -6,37 +6,70 @@ from scipy.cluster.hierarchy import linkage, leaves_list
 import os
 import sys
 import time
+import plotly
 import plotly.graph_objects as go
 import seaborn as sns
 import matplotlib.pyplot as plt
+import cProfile
+import traceback
+import retrying
 
-from .config import _globals
+from .config import var
 from .dprint import dprint
 
+t0 = None
 
 
-def do_heatmap(tsvgz_flpth, png_flpth, html_flpth, cluster=False):
+####################################################################################################
+####################################################################################################
+def do_heatmap(tsvgz_flpth, png_flpth, html_flpth, cluster=True, png_from='plotly'):
+    '''
+    tsvgz_flpth: data to heatmap
+    png_flpth: where to write png heatmap
+    html_flpth: where to write plotly interactive html. skip if `None`
+    cluster: scipy clustering
+
+    plotly can generate the interactive html in good time, but for some reason can take
+    all night to write to static image
+    '''
+    global t0
+
     df = pd.read_csv(tsvgz_flpth, sep='\t', index_col=0, compression='gzip')
 
-    if cluster:
+    dprint('df.shape', run=locals())
+
+    d = 4000
+    df = df.iloc[:d,:d]
+
+    dprint('df.shape', run=locals())
+
+    ###
+    ###
+    if cluster == True:
+        logging.info('Clustering heatmap for %s' % os.path.basename(tsvgz_flpth))
+
         t0 = time.time()
         row_ordering = leaves_list(linkage(df))
+        t_cluster_row = time.time() - t0
+        t0 = time.time()
         col_ordering = leaves_list(linkage(df.T))
-        t_cluster = time.time() - t0
+        t_cluster_col = time.time() - t0
 
-        dprint('t_cluster', run=locals())
+        dprint('t_cluster_row', 't_cluster_col', run=locals())
 
         df = df.iloc[row_ordering, col_ordering]
 
-    logging.info('Generating interactive heatmap for %s' % os.path.basename(tsvgz_flpth))
+    ###
+    ###
+    logging.info('Generating plotly interactive heatmap for %s' % os.path.basename(tsvgz_flpth))
 
     t0 = time.time()
     fig = go.Figure(go.Heatmap(
         z=df.values,
         y=df.index.tolist(),
         x=df.columns.tolist(),
-        colorbar={'len': 0.3}
-        ))
+        colorbar={'len': 0.3},
+    ))
     t_go_heatmap = time.time() - t0
 
     dprint('t_go_heatmap', run=locals())
@@ -44,55 +77,72 @@ def do_heatmap(tsvgz_flpth, png_flpth, html_flpth, cluster=False):
     fig.update_layout(
         height=1000,
         width=1500,
-        title_text=os.path.basename(tsvgz_flpth)[:-3] + ' ' + str(df.shape),
-        title_x=0.5
-        )
+        title_text=os.path.basename(tsvgz_flpth)[:-3] + '<br>shape=' + str(df.shape),
+        title_x=0.5,
+        yaxis_title='MetaCyc pathway', # TODO map these from code to full+code
+        xaxis_title='sample',
+        xaxis_tickangle=45,
+    )
 
-    logging.info('Writing heatmap at %s' % html_flpth)
+    logging.info('Writing plotly interactive heatmap at %s' % html_flpth)
+
     t0 = time.time()
     fig.write_html(html_flpth)
     t_write_html = time.time() - t0
 
     dprint('t_write_html', run=locals())
     
-    """ # orca server process reconnection error
-    logging.info('Writing heatmap at %s' % png_flpth)
-    t0 = time.time()
-    fig.write_image(png_flpth)
-    t_write_image = time.time() - t0
+    ###
+    ###
+    if png_from == 'plotly': # orca server process reconnection error
+        logging.info('Writing plotly static heatmap at %s' % png_flpth)
 
-    dprint('t_write_image', run=locals())
-    """
+        # from stackoverflow
+        # addressing orca cannot connect to server for some reason error
+        unwrapped = plotly.io._orca.request_image_with_retrying.__wrapped__
+        wrapped = retrying.retry(wait_random_min=1000)(unwrapped)
+        plotly.io._orca.request_image_with_retrying = wrapped
+        
+        t0 = time.time()
+        #cProfile.runctx('fig.write_image(png_flpth)', globals=globals(), locals=locals(), sort='cumtime') # TODO
+        fig.write_image(png_flpth)
+        t_write_image = time.time() - t0
+
+        dprint('t_write_image', run=locals())
     
-    logging.info('Generating static heatmap image')
+    ###
+    ###
+    if png_from == 'sns':
 
-    t0 = time.time()
-    ax = sns.heatmap(df)
-    t_sns_heatmap = time.time() - t0
+        logging.info('Generating sns static heatmap at %s' % png_flpth)
 
-    dprint('t_sns_heatmap', run=locals())
+        t0 = time.time()
+        ax = sns.heatmap(df)
+        t_sns_heatmap = time.time() - t0
 
-    plt.setp(ax.get_xticklabels(), rotation=30, ha="right", rotation_mode="anchor")
-    fig = ax.get_figure()
-    fig.set_size_inches(20, 10)
-    
-    logging.info('Writing heatmap at %s' % png_flpth)
+        dprint('t_sns_heatmap', run=locals())
 
-    t0 = time.time()
-    fig.savefig(png_flpth)
-    t_savefig = time.time() - t0
+        plt.setp(ax.get_xticklabels(), rotation=30, ha="right", rotation_mode="anchor")
+        fig = ax.get_figure()
+        fig.set_size_inches(20, 10)
+        
+        logging.info('Writing heatmap at %s' % png_flpth)
 
-    dprint('t_savefig', run=locals())
+        t0 = time.time()
+        fig.savefig(png_flpth)
+        t_savefig = time.time() - t0
 
-    plt.clf()
+        dprint('t_savefig', run=locals())
+
+        plt.clf() # clear figure
         
 
+####################################################################################################
+####################################################################################################
 class HTMLReportWriter:
 
     def __init__(self, cmd_l, tsvgz_flpth_l):
         '''
-        out_files - [fixRank, filterByConf]
-        params_prose - all str
         '''
         self.replacement_d = {}
 
@@ -101,7 +151,7 @@ class HTMLReportWriter:
         self.cmd_l = cmd_l
 
         #
-        self.report_dir = os.path.join(_globals.shared_folder, str(uuid.uuid4()))
+        self.report_dir = os.path.join(var.run_dir, 'report')
         os.mkdir(self.report_dir)
 
 
@@ -126,11 +176,30 @@ class HTMLReportWriter:
         html_flpth_l = [os.path.join(self.report_dir, os.path.basename(tsvgz_flpth)[:-7] + '.html') 
             for tsvgz_flpth in self.tsvgz_flpth_l]
         
-        for tsvgz_flpth, png_flpth, html_flpth in zip(self.tsvgz_flpth_l, png_flpth_l, html_flpth_l):
-            do_heatmap(tsvgz_flpth, png_flpth, html_flpth)
+        for flpth_tup in zip(self.tsvgz_flpth_l, png_flpth_l, html_flpth_l):
+            try:
+                do_heatmap(*flpth_tup)
+            except Exception as e:
+                traceback.print_exc()
+                logging.info(
+                    'Error occurred when generating heatmap for `%s`.\n'
+                    'Error is: `%s`\n' 
+                    'Time from last checkpoint is %.2fs\n'
+                    'Aborting heatmapping' 
+                    % (flpth_tup[0], traceback.format_exc(), time.time() - t0)
+                )
+                self.replacement_d['FIGURES_TAG'] = (
+                    '<p><i>'
+                    'Sorry, an error occurred generating a heatmap for %s. '
+                    'See returned files to access the TSVs'
+                    '</i></p>' 
+                    % os.path.basename(flpth_tup[0])
+                )
+                return
 
 
         def get_relative_fig_path(flpth):
+            '''fig path relative to report.html'''
             return '/'.join(flpth.split('/')[-2:])
 
         # build replacement string
@@ -139,7 +208,8 @@ class HTMLReportWriter:
             txt += '<p><a href="%s" target="_blank"><img alt="%s" src="%s" title="Open to interact"></a></p>\n' % (
                 os.path.basename(html_flpth),
                 os.path.basename(png_flpth),
-                get_relative_fig_path(png_flpth))
+                get_relative_fig_path(png_flpth)
+            )
 
         txt += '</div>\n'
 
@@ -148,7 +218,7 @@ class HTMLReportWriter:
 
     def write(self):
         self._compile_cmd()
-        #self._compile_figures() # TODO stress test heatmaps
+        self._compile_figures() # TODO stress test heatmaps
 
         
         REPORT_HTML_TEMPLATE_FLPTH = '/kb/module/ui/output/report.html'

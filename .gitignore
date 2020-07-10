@@ -1,4 +1,10 @@
 test_local
+sdk.cfg
+
 .*.sw[a-z]
 *.py.bak*
-sdk.cfg
+__pycache__
+.DS_Store
+
+17770/
+secret/

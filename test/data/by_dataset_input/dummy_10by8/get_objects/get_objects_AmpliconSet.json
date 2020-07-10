@@ -1,0 +1,56 @@
+{
+  "data": [
+    {
+      "data": {
+        "amplicon_matrix_ref": "49926/5/2",
+        "amplicons": {
+          "amplicon_id_0": {
+            "consensus_sequence": "gattaca",
+            "taxonomy": {}
+          },
+          "amplicon_id_1": {
+            "consensus_sequence": "gattaca",
+            "taxonomy": {}
+          },
+          "amplicon_id_2": {
+            "consensus_sequence": "gattaca",
+            "taxonomy": {}
+          },
+          "amplicon_id_3": {
+            "consensus_sequence": "gattaca",
+            "taxonomy": {}
+          },
+          "amplicon_id_4": {
+            "consensus_sequence": "gattaca",
+            "taxonomy": {}
+          },
+          "amplicon_id_5": {
+            "consensus_sequence": "gattaca",
+            "taxonomy": {}
+          },
+          "amplicon_id_6": {
+            "consensus_sequence": "gattaca",
+            "taxonomy": {}
+          },
+          "amplicon_id_7": {
+            "consensus_sequence": "gattaca",
+            "taxonomy": {}
+          },
+          "amplicon_id_8": {
+            "consensus_sequence": "gattaca",
+            "taxonomy": {}
+          },
+          "amplicon_id_9": {
+            "consensus_sequence": "gattaca",
+            "taxonomy": {}
+          }
+        }
+      },
+      "info": [
+        -66,
+        "Dummy_10by8_AmpliconSet",
+        "DummyExperiments.AmpliconSet-5.0"
+      ]
+    }
+  ]
+}

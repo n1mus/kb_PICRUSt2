@@ -4,9 +4,10 @@ import numpy as np
 import os
 import sys
 import gzip
+import json
 
 from .dprint import dprint
-from .config import _globals
+from .config import var
 
 
 
@@ -17,114 +18,22 @@ pd.set_option('display.width', 1000)
 pd.set_option('display.max_colwidth', 20)
 
 
-####################################################################################################
-####################################################################################################
-####################################################################################################
+def write_json(obj, flnm, AmpliconSet=False):
+    '''
+    For debugging/testing
+    '''
+    if 'run_dir' not in var:
+        import uuid
+        var.run_dir = os.path.join('/kb/module/work/tmp', str(uuid.uuid4()))
+        os.mkdir(var.run_dir)
 
-class AttributeMapping:
+    flpth = os.path.join(var.run_dir, flnm)
+    with open(flpth, 'w') as f:
+        json.dump(obj, f, indent=3)
 
-    def __init__(self, upa, mini_test=False):
-        self.upa = upa
-        self.mini_test = mini_test
+    if AmpliconSet == True:
+        dprint('touch %s' % os.path.join(var.run_dir, '#' + obj['data'][0]['info'][1]), run='cli') # annotate run_dir with name
 
-        self._get_obj()
-
-    def _get_obj(self):
-        obj = _globals.dfu.get_objects({
-            'object_refs': [self.upa]
-            })
-
-        self.name = obj['data'][0]['info'][1]
-        self.obj = obj['data'][0]['data']
-
-
-    def parse_picrust2_traits(self, id_x_code_tsv_gz_flpth) -> dict:
-        '''
-        id_x_code_tsv_flpth - created by picrust2_pipeline.py
-                              rows are amplicon ids, columns are metacyc codes
-                              (leaves out any ids or codes with no hits)
-        '''
-
-        ## parse and prep ds
-
-        MAP_FLPTH = os.path.join(_globals.picrust2_pckg_dir, # metacyc code to description
-            'default_files/description_mapfiles/metacyc_pathways_info.txt.gz') 
-
-        map_df = pd.read_csv(MAP_FLPTH, sep='\t', header=None, index_col=0, compression='gzip')
-        map_d = map_df[1].to_dict()
-
-        id_x_code_df = pd.read_csv(id_x_code_tsv_gz_flpth, sep='\t', header=0, index_col='sequence', compression='gzip')
-        id_x_desc_df = id_x_code_df.rename(columns=map_d)
-
-        dprint('map_d', 'id_x_desc_df', max_lines=5, run=locals())
-
-        # aggregate metacyc descriptions for each id
-
-        desc_npArr = np.array(id_x_desc_df.columns.tolist())
-        traits_l = []
-
-        for sequence, row in id_x_desc_df.iterrows():
-            abun_l = list(row) 
-            nonzero_ind_npArr = np.nonzero(abun_l)[0]
-            traits_l.append(':'.join(list(desc_npArr[nonzero_ind_npArr])))
-
-        id_x_desc_df['traits'] = traits_l
-
-        id2traits_d = id_x_desc_df['traits'].to_dict()
-
-        return id2traits_d
-        
-
-        
-    def update_attribute(self, id2attr_d, attribute, source):
-        # find index of attribute
-        for ind, attr_d in enumerate(self.obj['attributes']):
-            if attr_d['attribute'] == attribute:
-                attr_ind = ind
-                break
-
-        for id, attr_l in self.obj['instances'].items():
-            attr_l[attr_ind] = id2attr_d.get(id, '')
-
-        self.obj['attributes'][attr_ind]['source'] = source
-
-
-    def add_attribute_slot(self, attribute):
-        
-        # check if already exists
-        for attr_d in self.obj['attributes']:
-            if attr_d['attribute'] == attribute:
-                msg = 'Adding attribute slot `%s` to AttributeMapping with name `%s`, ' % (attribute, self.name) + \
-                      'but that attribute already exists'
-                logging.warning(msg)
-                _globals.warnings.append(msg)
-                return
-
-        # append slot to `attributes`
-        self.obj['attributes'].append({
-            'attribute': attribute,
-            })
-
-        # append slots to `instances` 
-        for _, attr_l in self.obj['instances'].items():
-            attr_l.append('')
-
-
-
-    def save(self):
-        
-        info = _globals.dfu.save_objects(
-            {'id': _globals.params['workspace_id'],
-             "objects": [{
-                 "type": "KBaseExperiments.AttributeMapping",
-                 "data": self.obj,
-                 "name": self.name,
-                 "extra_provenance_input_refs": [self.upa]
-             }]})[0]
-
-        upa_new = "%s/%s/%s" % (info[6], info[0], info[4])
-
-        return upa_new
 
 
 
@@ -133,44 +42,38 @@ class AttributeMapping:
 ####################################################################################################
 
 class AmpliconSet:
+    '''
+    Instances need to know `var.return_dir` to fully function
+    '''
 
-    def __init__(self, upa, mini_test=False):
+    def __init__(self, upa):
         self.upa = upa
-        self.mini_test = mini_test
-
         self._get_obj()
-        self._to_fasta()
-
 
 
     def _get_obj(self):
-        obj = _globals.dfu.get_objects({
+        logging.info('Loading AmpliconSet object')
+
+        obj = var.dfu.get_objects({
             'object_refs': [self.upa]
             })
+
+        if var.debug: write_json(obj, 'get_objects_AmpliconSet.json', AmpliconSet=True)
         
         self.name = obj['data'][0]['info'][1]
         self.obj = obj['data'][0]['data']
         self.amp_mat_upa = self.obj['amplicon_matrix_ref']
 
 
-    # TODO move to AttributeMapping
-    def _to_fasta(self):
-        seq_flpth = os.path.join(_globals.run_dir, 'study_seqs.fna')
+    def to_fasta(self, flpth):
+        logging.info('Writing fasta to %s' % flpth)
+
+        amplicons_d = self.obj['amplicons']
         
-        logging.info(f'Writing fasta to {seq_flpth}')
-
-        amplicon_d = self.obj['amplicons']
-        
-        with open(seq_flpth, 'w') as fp:
-            for i, (ASV_id, d) in enumerate(amplicon_d.items()):
-                fp.write('>' + ASV_id + '\n')
-                fp.write(d['consensus_sequence'] + '\n')
-
-                if _globals.debug and self.mini_test and i > 20:
-                    break
-              
-        self.seq_flpth = seq_flpth
-
+        with open(flpth, 'w') as fp:
+            for id, amplicon_d in amplicons_d.items():
+                fp.write('>' + id + '\n')
+                fp.write(amplicon_d['consensus_sequence'] + '\n')
 
 
     def update_amplicon_matrix_ref(self, amp_mat_upa_new):
@@ -178,10 +81,10 @@ class AmpliconSet:
 
 
     def save(self, name=None):
-        dprint('self.obj', run=locals())
+        logging.info('Saving AmpliconSet')
 
-        info = _globals.dfu.save_objects(
-            {'id': _globals.params['workspace_id'],
+        info = var.dfu.save_objects(
+            {'id': var.params['workspace_id'],
              "objects": [{
                 "type": "KBaseExperiments.AmpliconSet",
                 "data": self.obj,
@@ -204,24 +107,25 @@ class AmpliconMatrix:
 
     def __init__(self, upa):
         self.upa = upa
-
         self._get_obj()
-        self._to_seq_abundance_table()
 
 
     def _get_obj(self):
-        obj = _globals.dfu.get_objects({
+        logging.info('Loading AmpliconMatrix object')
+
+        obj = var.dfu.get_objects({
             'object_refs': [self.upa]
             })
+
+        if var.debug: write_json(obj, 'get_objects_AmpliconMatrix.json')
 
         self.name = obj['data'][0]['info'][1]
         self.row_attrmap_upa = obj['data'][0]['data'].get('row_attributemapping_ref')
         self.obj = obj['data'][0]['data']
 
 
-    def _to_seq_abundance_table(self):
-
-        logging.info(f"Parsing AmpliconMatrix and AmpliconSet data from object")
+    def to_seq_abundance_table(self, flpth):
+        logging.info(f"Writing sequence abundance table to %s" % flpth)
 
         data = np.array(self.obj['data']['values'], dtype=float)
         row_ids = self.obj['data']['row_ids']
@@ -233,10 +137,7 @@ class AmpliconMatrix:
             columns=col_ids # sample names
             )
         data.index.name = "ASV_Id"
-
-        self.seq_abundance_table_flpth = os.path.join(_globals.run_dir, 'study_seqs.tsv')
-
-        data.to_csv(self.seq_abundance_table_flpth, sep='\t')
+        data.to_csv(flpth, sep='\t')
 
 
     def update_row_attributemapping_ref(self, row_attrmap_upa_new):
@@ -244,10 +145,10 @@ class AmpliconMatrix:
 
 
     def save(self, name=None):
-        dprint('self.obj', run=locals())
+        logging.info('Saving AmpliconMatrix')
 
-        info = _globals.dfu.save_objects(
-            {'id': _globals.params['workspace_id'],
+        info = var.dfu.save_objects(
+            {'id': var.params['workspace_id'],
              "objects": [{
                  "type": "KBaseMatrices.AmpliconMatrix",
                  "data": self.obj,
@@ -261,6 +162,119 @@ class AmpliconMatrix:
 
 
 
-       
+####################################################################################################
+####################################################################################################
+####################################################################################################
+
+class AttributeMapping:
+
+    def __init__(self, upa):
+        self.upa = upa
+        self._get_obj()
+
+    def _get_obj(self):
+        logging.info('Loading AttributeMapping object')
+
+        obj = var.dfu.get_objects({
+            'object_refs': [self.upa]
+            })
+
+        if var.debug: write_json(obj, 'get_objects_AttributeMapping.json')
+
+        self.name = obj['data'][0]['info'][1]
+        self.obj = obj['data'][0]['data']
+
+
+    def update_attribute(self, ind: int, id2attr_d: dict):
+        '''
+        Update attribute at index `ind` using mapping `id2attr_d`
+        '''
+        for id, attr in id2attr_d.items():
+            self.obj['instances'][id][ind] = attr
+
+
+    def get_attribute_slot(self, attribute, source, create=True) -> int:
+        '''
+        Get attribute slot matching both `attribute` and `source`
+        
+        Return the index of that slot, 
+        which corresponds to both obj['attributes'] and each list in obj['instances']
+
+        If slot matching both `attribute` and `source` does not exist
+        * if `create=True` add slot for it
+        * if `create=False` return -1
+        '''
+        
+        # check if already exists
+        for ind, attr_d in enumerate(self.obj['attributes']):
+            if attr_d['attribute'] == attribute and attr_d['source'] == source:
+                msg = (
+                    'Overwriting attribute `%s` with source `%s` '
+                    'in row AttributeMapping with name `%s`'
+                    % (attribute, source, self.name)
+                )
+                logging.warning(msg)
+                var.warnings.append(msg)
+                return ind
+
+        # if slot not found
+        # and not creating a new one
+        if create != True:
+            return -1
+
+        # append slot to `attributes`
+        self.obj['attributes'].append({
+            'attribute': attribute,
+            'source': source,
+            })
+
+        # append slots to `instances` 
+        for attr_l in self.obj['instances'].values():
+            attr_l.append('')
+
+        return len(attr_l) - 1
+
+
+    def save(self):
+        logging.info('Saving AttributeMapping')
+        
+        info = var.dfu.save_objects(
+            {'id': var.params['workspace_id'],
+             "objects": [{
+                 "type": "KBaseExperiments.AttributeMapping",
+                 "data": self.obj,
+                 "name": self.name,
+                 "extra_provenance_input_refs": [self.upa]
+             }]})[0]
+
+        upa_new = "%s/%s/%s" % (info[6], info[0], info[4])
+
+        return upa_new
+
+
+
+####################################################################################################
+####################################################################################################
+####################################################################################################
+class Report:
+    '''For facilitating testing'''
+
+    def __init__(self, upa):
+        self.upa = upa
+        self._get_obj()
+
+    def _get_obj(self):
+
+        logging.info('Loading AttributeMapping object')
+
+        obj = var.dfu.get_objects({
+            'object_refs': [self.upa]
+            })
+
+        if var.debug: write_json(obj, 'get_objects_AttributeMapping.json')
+
+        self.obj = obj['data'][0]['data']
+
+
 
 

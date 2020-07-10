@@ -7,16 +7,19 @@ MAINTAINER KBase Developer
 # installation scripts.
 
 
-
+# it's essential to install 4.8.3 in the conda environment *first*
+# this helps install the rest of the packages in that environment
 RUN conda create --yes --name picrust2 conda=4.8.3
 RUN conda install --yes --name picrust2  --channel bioconda --channel conda-forge picrust2=2.3.0_b 
 
+# TODO consolidate/prune
 RUN pip install pandas numpy
 RUN pip install dotmap
 RUN pip install seaborn
 RUN pip install fastcluster
 
-# install plotly
+# install plotly, orca, dependencies
+# TODO consolidate
 RUN apt-get update
 RUN apt-get install --yes gcc libgtk2.0-0 libgtk-3-0 libxss1 libasound2
 RUN pip install --upgrade pip

@@ -8,7 +8,7 @@ import logging
 import inspect
 import time as _time
 
-from .config import _globals
+from .config import var
 
 
 subproc_run = functools.partial(
@@ -18,9 +18,9 @@ TAG_WIDTH = 80
 MAX_LINES = 70
 
 
-def dprint(*args, run=False, where=False, time=False, max_lines=MAX_LINES, subproc_run_kwargs={}, print_kwargs={}):
+def dprint(*args, run=False, where=False, time=False, max_lines=MAX_LINES, exit=False, subproc_run_kwargs={}, print_kwargs={}):
 
-    if not _globals.debug:
+    if not var.debug:
         return
 
     print = functools.partial(__builtins__['print'], **print_kwargs)
@@ -59,6 +59,9 @@ def dprint(*args, run=False, where=False, time=False, max_lines=MAX_LINES, subpr
             print('[%fs]' % t)
     
     print('-' * TAG_WIDTH)
+
+    if exit == True:
+        sys.exit(0)
     
     # return last retcode
     if run and run in ['cli', 'shell']:
