@@ -1,3 +1,4 @@
+import shutil
 import logging
 import pandas as pd
 import numpy as np
@@ -76,26 +77,6 @@ class AmpliconSet:
                 fp.write(amplicon_d['consensus_sequence'] + '\n')
 
 
-    def update_amplicon_matrix_ref(self, amp_mat_upa_new):
-        self.obj['amplicon_matrix_ref'] = amp_mat_upa_new
-
-
-    def save(self, name=None):
-        logging.info('Saving AmpliconSet')
-
-        info = var.dfu.save_objects(
-            {'id': var.params['workspace_id'],
-             "objects": [{
-                "type": "KBaseExperiments.AmpliconSet",
-                "data": self.obj,
-                "name": name if name else self.name,
-                "extra_provenance_input_refs": [self.upa]
-             }]})[0]
-
-        upa_new = "%s/%s/%s" % (info[6], info[0], info[4])
-
-        return upa_new
-
 
 
 
@@ -139,6 +120,9 @@ class AmpliconMatrix:
         data.index.name = "ASV_Id"
         data.to_csv(flpth, sep='\t')
 
+    def to_fasta(self, flpth):
+        fetched_flpth = var.gapi.fetch_sequence(self.upa)
+        shutil.copyfile(fetched_flpth, flpth)
 
     def update_row_attributemapping_ref(self, row_attrmap_upa_new):
         self.obj['row_attributemapping_ref'] = row_attrmap_upa_new
@@ -193,7 +177,7 @@ class AttributeMapping:
             self.obj['instances'][id][ind] = attr
 
 
-    def get_attribute_slot(self, attribute, source, create=True) -> int:
+    def get_attribute_slot_warn(self, attribute, source) -> int:
         '''
         Get attribute slot matching both `attribute` and `source`
         
@@ -216,11 +200,6 @@ class AttributeMapping:
                 logging.warning(msg)
                 var.warnings.append(msg)
                 return ind
-
-        # if slot not found
-        # and not creating a new one
-        if create != True:
-            return -1
 
         # append slot to `attributes`
         self.obj['attributes'].append({
@@ -270,8 +249,6 @@ class Report:
         obj = var.dfu.get_objects({
             'object_refs': [self.upa]
             })
-
-        if var.debug: write_json(obj, 'get_objects_AttributeMapping.json')
 
         self.obj = obj['data'][0]['data']
 

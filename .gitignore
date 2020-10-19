@@ -6,5 +6,4 @@ sdk.cfg
 __pycache__
 .DS_Store
 
-17770/
-secret/
+by_dataset_input/

@@ -18,30 +18,39 @@ from .config import var
 from .dprint import dprint
 
 t0 = None
-
+MAX_LEN = 3000 # 3000^2 is largest size supported by kaleido's chromium JSON stdin
 
 ####################################################################################################
 ####################################################################################################
-def do_heatmap(tsvgz_flpth, png_flpth, html_flpth, cluster=True, png_from='plotly'):
+def do_heatmap(tsvgz_flpth, png_flpth, html_flpth, cluster=True, png_from='plotly'): # TODO also do subset len, log coloring?
     '''
     tsvgz_flpth: data to heatmap
     png_flpth: where to write png heatmap
-    html_flpth: where to write plotly interactive html. skip if `None`
+    html_flpth: where to write plotly interactive html
     cluster: scipy clustering
+    png_from: which package to use to write to png
 
     plotly can generate the interactive html in good time, but for some reason can take
-    all night to write to static image
+    all night to write to static image. this reason is that orca is a server contacted through
+    a port. using kaleido instead limits the size of the df to write though since it sends
+    a json through stdin to a chromium server and that limits the JSON
     '''
     global t0
 
     df = pd.read_csv(tsvgz_flpth, sep='\t', index_col=0, compression='gzip')
 
     dprint('df.shape', run=locals())
+    r, c = df.shape
 
-    d = 4000
-    df = df.iloc[:d,:d]
+    """
+    ###
+    ###
+    # TODO sort
+    df = df.iloc[:MAX_LEN,:MAX_LEN]
+    cluster = True
 
     dprint('df.shape', run=locals())
+    """
 
     ###
     ###
@@ -96,16 +105,10 @@ def do_heatmap(tsvgz_flpth, png_flpth, html_flpth, cluster=True, png_from='plotl
     ###
     if png_from == 'plotly': # orca server process reconnection error
         logging.info('Writing plotly static heatmap at %s' % png_flpth)
-
-        # from stackoverflow
-        # addressing orca cannot connect to server for some reason error
-        unwrapped = plotly.io._orca.request_image_with_retrying.__wrapped__
-        wrapped = retrying.retry(wait_random_min=1000)(unwrapped)
-        plotly.io._orca.request_image_with_retrying = wrapped
-        
         t0 = time.time()
-        #cProfile.runctx('fig.write_image(png_flpth)', globals=globals(), locals=locals(), sort='cumtime') # TODO
-        fig.write_image(png_flpth)
+
+        fig.write_image(png_flpth, engine='kaleido')
+        
         t_write_image = time.time() - t0
 
         dprint('t_write_image', run=locals())
@@ -141,18 +144,24 @@ def do_heatmap(tsvgz_flpth, png_flpth, html_flpth, cluster=True, png_from='plotl
 ####################################################################################################
 class HTMLReportWriter:
 
-    def __init__(self, cmd_l, tsvgz_flpth_l):
+    def __init__(self, cmd_l, tsvgz_flpth_l, report_dir): 
         '''
+        Input:
+        * cmd_l - list of shell commands
+        * tsvgz_flpth_l
+        * report_dir - report directory tree will be built here. 
+                       `report_dir` will be created if it does not already exist
         '''
         self.replacement_d = {}
 
         #
         self.tsvgz_flpth_l = tsvgz_flpth_l
         self.cmd_l = cmd_l
+        self.report_dir = report_dir
 
         #
-        self.report_dir = os.path.join(var.run_dir, 'report')
-        os.mkdir(self.report_dir)
+        if not os.path.exists(report_dir):
+            os.mkdir(report_dir)
 
 
     def _compile_cmd(self):
@@ -188,6 +197,7 @@ class HTMLReportWriter:
                     'Aborting heatmapping' 
                     % (flpth_tup[0], traceback.format_exc(), time.time() - t0)
                 )
+                var.warnings.append('Error occurred heatmapping %s. Aborting heatmaps' % flpth_tup[0])
                 self.replacement_d['FIGURES_TAG'] = (
                     '<p><i>'
                     'Sorry, an error occurred generating a heatmap for %s. '
@@ -233,7 +243,7 @@ class HTMLReportWriter:
                         dst_fp.write(line)
         
 
-        return self.report_dir, html_flpth
+        return html_flpth
 
 
 

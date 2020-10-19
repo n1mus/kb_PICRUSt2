@@ -7,7 +7,7 @@ import json
 
 from installed_clients.DataFileUtilClient import DataFileUtil
 from installed_clients.KBaseReportClient import KBaseReport
-from installed_clients.WorkspaceClient import Workspace
+from installed_clients.GenericsAPIClient import GenericsAPI
 
 from kb_PICRUSt2.kb_PICRUSt2Impl import run_check
 from kb_PICRUSt2.util.dprint import dprint
@@ -22,16 +22,25 @@ testData_dir = '/kb/module/test/data'
 ##################################
 
 
+def get_mock_gapi(dataset):
+    mock_gapi = create_autospec(GenericsAPI, instance=True)
 
+    def mock_gapi_fetch_sequence(params):
+        logging.info('Mocking `gapi.fetch_sequence` with `params=%s`' % str(params))
+
+        flpth = os.path.join(testData_dir, 'by_dataset_input', dataset, 'fetch_sequence/seqs.fna')
+        return flpth
+
+    mock_gapi.fetch_sequence.side_effect = mock_gapi_fetch_sequence
+
+    return mock_gapi
+        
 
 
 def get_mock_dfu(dataset):
     '''
-    Avoid lengthy `get_objects` and `save_objects``:w
+    Avoid lengthy `get_objects` and `save_objects`
     '''
-    # validate
-    if dataset not in ['17770', 'secret', 'dummy_10by8']:
-        raise NotImplementedError('Input dataset not recognized')
 
     mock_dfu = create_autospec(DataFileUtil, instance=True)
 
@@ -53,11 +62,9 @@ def get_mock_dfu(dataset):
 
         upa = params['object_refs'][0]
         flnm = {
-            _17770: 'get_objects_AmpliconSet.json',
-            _17770_AmpMat: 'get_objects_AmpliconMatrix.json',
-            _17770_AttrMap: 'get_objects_AttributeMapping.json',
-            secret: 'get_objects_AmpliconSet.json',
-            secret_AmpMat: 'get_objects_AmpliconMatrix.json',
+            enigma50by30_noAttrMaps_noSampleSet : 'AmpliconMatrix.json',
+            enigma50by30 : 'AmpliconMatrix.json',
+            enigma50by30_rowAttrMap : 'row_AttributeMapping.json',
             dummy_10by8: 'get_objects_AmpliconSet.json',
             dummy_10by8_AmpMat: 'get_objects_AmpliconMatrix.json',
             dummy_10by8_AttrMap: 'get_objects_AttributeMapping.json',
@@ -79,9 +86,6 @@ def get_mock_run_check(dataset):
     Avoid expensive runs of tool
     Copy over `var.out_dir`
     '''
-    if dataset not in ['17770', 'secret', 'dummy_10by8']:
-        raise NotImplementedError()
-
     mock_run_check = create_autospec(run_check)
 
     # side effect
