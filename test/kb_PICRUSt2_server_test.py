@@ -80,9 +80,10 @@ class kb_PICRUSt2Test(unittest.TestCase):
     ####################
     def test_OutfileWrangler(self):
         '''
-        Test `OutfileWrangler.parse_picrust2_traits` mostly
         '''
 
+        # Test `OutfileWrangler.parse_picrust2_traits`
+        
         flpth = '/kb/module/test/data/by_dataset_input/dummy_10by8/return/PICRUSt2_output/pathways_out/path_abun_predictions.tsv.gz'
 
         id2traits_d = OutfileWrangler.parse_picrust2_traits(flpth)
@@ -102,7 +103,7 @@ class kb_PICRUSt2Test(unittest.TestCase):
 
         self.assertTrue(id2traits_d == ans)
 
-
+        # TODO Test OutfileWrangler.pad_0_vecs
 
 
     ####################
@@ -407,10 +408,10 @@ class kb_PICRUSt2Test(unittest.TestCase):
  
     ####################
     ####################
-    #@patch_('kb_PICRUSt2.kb_PICRUSt2Impl.DataFileUtil', new=lambda *args: get_mock_dfu('enigma50by30'))
+    #@patch_('kb_PICRUSt2.kb_PICRUSt2Impl.DataFileUtil', new=lambda *a: get_mock_dfu('enigma50by30'))
     @patch_('kb_PICRUSt2.kb_PICRUSt2Impl.GenericsAPI', new=lambda *a, **k: get_mock_gapi('enigma50by30'))
     @patch('kb_PICRUSt2.kb_PICRUSt2Impl.run_check', new=get_mock_run_check('enigma50by30'))
-    @patch_('kb_PICRUSt2.kb_PICRUSt2Impl.KBaseReport', new=lambda *args, **kwargs: get_mock_kbr())
+    @patch_('kb_PICRUSt2.kb_PICRUSt2Impl.KBaseReport', new=lambda *a, **k: get_mock_kbr())
     def test_has_row_AttributeMapping(self):
         ret = self.serviceImpl.run_picrust2_pipeline(
             self.ctx, {
@@ -534,14 +535,14 @@ e.g., filter to tests in `run_tests`
 Comment out parts like `delattr` to deactivate
 '''
 integration_tests = [
-    'test_has_row_AttributeMapping', 'test_has_no_row_AttributeMapping', 'test_FuntionalProfile'
+    'test_has_row_AttributeMapping', 'test_has_no_row_AttributeMapping',
 ]
 unit_tests = [
     'test_run_check', 'test_OutfileWrangler', 
     'test_AmpliconSet_and_AmpliconMatrix', 'test_AttributeMapping'
 ]
 run_tests = [
-    'test_large_heatmap',
+    'test_has_row_AttributeMapping',
 ]
 
 for key, value in kb_PICRUSt2Test.__dict__.copy().items():

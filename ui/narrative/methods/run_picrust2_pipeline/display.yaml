@@ -4,7 +4,7 @@
 name: PICRUSt2
 
 tooltip: |
-    Predict EC, KO, and MetaCyc functions from metagenome marker gene profile
+    Predict prokaryote EC, KO, and MetaCyc functions from metagenome marker gene profile
 
 screenshots: []
 
@@ -31,7 +31,7 @@ parameters :
             Input object of type <code>AmpliconMatrix</code>
     output_name:
         ui-name: |
-            Updated AmpliconMatrix name if it has row AttributeMapping
+            Updated AmpliconMatrix name
         short-hint: |
             (Optional) If input AmpliconMatrix has a row AttributeMapping, both will be updated. Default output AmpliconMatrix name is same name, which will save over input object
 
@@ -70,6 +70,21 @@ publications:
             Lucas Czech, Pierre Barbera, Alexandros Stamatakis, Genesis and Gappa: processing, analyzing and visualizing phylogenetic (placement) data, Bioinformatics
         link: | 
             https://doi.org/10.1093/bioinformatics/btaa070
+
+    -
+        display-text: |
+            GAPPA
+
+
+    -
+        display-text: |
+            HMMER
+
+
+    -
+        display-text: |
+            IMG
+
 
 
 

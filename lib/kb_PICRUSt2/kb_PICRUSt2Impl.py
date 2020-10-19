@@ -45,6 +45,8 @@ def run_check(cmd):
 ####################################################################################################
 class OutfileWrangler:
 
+    #####
+    #####
     @staticmethod
     def do_code2desc(df: pd.DataFrame, code2desc_tsv_gz_flpth: str, code_in='col') -> pd.DataFrame:
         '''
@@ -77,7 +79,8 @@ class OutfileWrangler:
 
         return df
 
-
+    #####
+    #####
     @staticmethod
     def parse_picrust2_traits(id_x_code_tsv_gz_flpth, dlm=',') -> dict:
         '''
@@ -117,6 +120,54 @@ class OutfileWrangler:
         id2traits_d = id_x_desc_df['traits'].to_dict() # cast to Series first to avoid annoying nested dict
 
         return id2traits_d
+
+
+    #####
+    ##### TODO test
+    @staticmethod
+    def pad_0_vecs(tsv_flpth, amp_mat):
+        '''
+        PICRUSt2 drops ids/samples that are all 0s
+        Restore them in original order here
+        By 'id' I mean 'amplicon'
+        '''
+        flnm2index =  {
+            'path_abun_unstrat.tsv': 'sample', # func x sample
+            'EC_pred_metagenome_unstrat.tsv': 'sample', # func x sample
+            'KO_pred_metagenome_unstrat.tsv': 'sample', # func x sample
+            'path_abun_predictions.tsv': 'amplicon', # amplicon x func
+            'EC_predicted.tsv': 'amplicon', # amplicon x func
+            'KO_predicted.tsv': 'amplicon', # amplicon x func
+        }
+
+        index = flnm2index[os.path.basename(tsv_flpth)]
+        df_partial = pd.read_csv(tsv_flpth, sep='\t', index_col=0)
+
+        # orient PICRUSt2 output matrix as something vs. func
+        if index == 'sample':
+            df_partial = df_partial.T
+            id_l_full = amp_mat.obj['data']['col_ids']
+        elif index == 'amplicon':
+            id_l_full = amp_mat.obj['data']['row_ids']
+        else:
+            raise Exception()
+
+        if df_partial.shape[0] == len(id_l_full):
+            return
+
+        df_full = pd.DataFrame(
+            np.zeros((len(id_l_full), df_partial.shape[1])), 
+            index=id_l_full,
+            columns=df_partial.columns
+        )
+
+        df_full.loc[df_partial.index, df_partial.columns] = df_partial.values
+
+        # undo orient
+        if index == 'sample':
+            df_full = df_full.T
+
+        df_full.to_csv(tsv_flpth, sep='\t')
         
 
 #END_HEADER
@@ -342,11 +393,10 @@ class kb_PICRUSt2:
                     shutil.copyfileobj(fh_read, fh_write)
 
 
-        ## Decompress to temp dir ##
-
         tsv_dir = os.path.join(var.shared_folder, 'tsv_dir_kbpicrust2' + str(uuid.uuid4()))
         os.mkdir(tsv_dir)
 
+        # These are PICRUSt2 output tsvgz needed for FPs
         tsvgz_relflpth_l = [
             'pathways_out/path_abun_unstrat.tsv.gz', # func x sample
             'EC_metagenome_out/pred_metagenome_unstrat.tsv.gz', # func x sample
@@ -356,17 +406,26 @@ class kb_PICRUSt2:
             'KO_predicted.tsv.gz', # id x func
         ]
 
+        # These are destination tsvs to give to FPU
         tsv_flpth_l = [os.path.join(tsv_dir, os.path.basename(tsvgz_relflpth[:-3])) for tsvgz_relflpth in tsvgz_relflpth_l]
         tsv_flpth_l[1] = os.path.dirname(tsv_flpth_l[1]) + '/EC_' + os.path.basename(tsv_flpth_l[1])
         tsv_flpth_l[2] = os.path.dirname(tsv_flpth_l[2]) + '/KO_' + os.path.basename(tsv_flpth_l[2])
 
+        # Gunzip/copy
         for tsvgz_relflpth, tsv_flpth in zip(tsvgz_relflpth_l, tsv_flpth_l):
             gunzip(
                 os.path.join(var.out_dir, tsvgz_relflpth),
                 tsv_flpth
             )
 
+        # Pad 0 ids/samples
+        for tsv_flpth in tsv_flpth_l:
+            OutfileWrangler.pad_0_vecs(tsv_flpth, amp_mat)
+
         dprint('tsv_flpth_l', run=locals())
+
+
+
 
         ## Community FPs ##
 
@@ -414,8 +473,6 @@ class kb_PICRUSt2:
             ))['func_profile_ref'],
             description='KO vs. Sample',
         ))
- 
-        """
 
         ## Amplicon FPs ##
 
@@ -464,7 +521,6 @@ class kb_PICRUSt2:
             ))['func_profile_ref'],
             description='Amplicon vs. KO',
         ))
-        """
 
         #
         ##
