@@ -42,15 +42,18 @@ def do_heatmap(tsvgz_flpth, png_flpth, html_flpth, cluster=True, png_from='plotl
     dprint('df.shape', run=locals())
     r, c = df.shape
 
-    """
     ###
     ###
-    # TODO sort
-    df = df.iloc[:MAX_LEN,:MAX_LEN]
-    cluster = True
+    if df.shape[0] > MAX_LEN or df.shape[1] > MAX_LEN:
+        row_ordering = df.sum(axis=1).values.argsort()
+        col_ordering = df.sum(axis=0).values.argsort()
+    
+        df = df.iloc[row_ordering, col_ordering]
+        df = df.iloc[:MAX_LEN,:MAX_LEN]
+
+        cluster = True
 
     dprint('df.shape', run=locals())
-    """
 
     ###
     ###
@@ -213,7 +216,8 @@ class HTMLReportWriter:
             return '/'.join(flpth.split('/')[-2:])
 
         # build replacement string
-        txt = '<div id="imgLink">\n'
+        txt = '<p><i>Heatmaps restricted by top %d vector sums per dimension</i></p>' % MAX_LEN 
+        txt += '<div id="imgLink">\n'
         for png_flpth, html_flpth in zip(png_flpth_l, html_flpth_l):
             txt += '<p><a href="%s" target="_blank"><img alt="%s" src="%s" title="Open to interact"></a></p>\n' % (
                 os.path.basename(html_flpth),

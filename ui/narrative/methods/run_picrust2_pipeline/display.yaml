@@ -4,7 +4,7 @@
 name: PICRUSt2
 
 tooltip: |
-    Predict prokaryote EC, KO, and MetaCyc functions from metagenome marker gene profile
+    Predict prokaryote EC, KO, and MetaCyc functions from 16S amplicon matrix
 
 screenshots: []
 
@@ -44,6 +44,7 @@ description : |
     and an updated AmpliconMatrix referencing the new row AttributeMapping.
     Always generates three new community FunctionalProfiles and three new amplicon FunctionalProfiles;
     three because one for each of PICRUSt2's predicted EC, KO, and MetaCyc functions. 
+    The FunctionalProfiles will reference the new AmpliconMatrix is one was created.
     </p>
 
     <p>
@@ -55,26 +56,28 @@ publications:
 
     -
         display-text: |
-            Douglas, G.M., Maffei, V.J., Zaneveld, J.R. et al. PICRUSt2 for prediction of metagenome functions. Nat Biotechnol 38, 685–688 (2020). 
+            Douglas, G.M., Maffei, V.J., Zaneveld, J.R. et al. PICRUSt2 for prediction of metagenome functions. Nat Biotechnol 38, 685–688 (2020), https://doi.org/10.1038/s41587-020-0548-6 
         link: |
             https://doi.org/10.1038/s41587-020-0548-6
 
     -
         display-text: |
-            Pierre Barbera, Alexey M Kozlov, Lucas Czech, Benoit Morel, Diego Darriba, Tomáš Flouri, Alexandros Stamatakis, EPA-ng: Massively Parallel Evolutionary Placement of Genetic Sequences, Systematic Biology, Volume 68, Issue 2, March 2019, Pages 365–369
-        link : |
+            Pierre Barbera, Alexey M Kozlov, Lucas Czech, Benoit Morel, Diego Darriba, Tomáš Flouri, Alexandros Stamatakis, EPA-ng: Massively Parallel Evolutionary Placement of Genetic Sequences, Systematic Biology, Volume 68, Issue 2, March 2019, Pages 365–369, https://doi.org/10.1093/sysbio/syy054
+        link: |
             https://doi.org/10.1093/sysbio/syy054
 
     -
         display-text: |
-            Lucas Czech, Pierre Barbera, Alexandros Stamatakis, Genesis and Gappa: processing, analyzing and visualizing phylogenetic (placement) data, Bioinformatics
+            Lucas Czech, Pierre Barbera, Alexandros Stamatakis, Genesis and Gappa: processing, analyzing and visualizing phylogenetic (placement) data, Bioinformatics, https://doi.org/10.1093/bioinformatics/btaa070
         link: | 
             https://doi.org/10.1093/bioinformatics/btaa070
 
-    -
+    - 
+        # castor
         display-text: |
-            GAPPA
-
+            Stilianos Louca, Michael Doebeli, Efficient comparative phylogenetics on large trees, Bioinformatics, Volume 34, Issue 6, 15 March 2018, Pages 1053–1055, https://doi.org/10.1093/bioinformatics/btx701
+        link: |
+            https://doi.org/10.1093/bioinformatics/btx701
 
     -
         display-text: |
@@ -83,8 +86,24 @@ publications:
 
     -
         display-text: |
-            IMG
+            Victor M. Markowitz, I-Min A. Chen, Krishna Palaniappan, Ken Chu, Ernest Szeto, Yuri Grechkin, Anna Ratner, Biju Jacob, Jinghua Huang, Peter Williams, Marcel Huntemann, Iain Anderson, Konstantinos Mavromatis, Natalia N. Ivanova, Nikos C. Kyrpides, IMG: the integrated microbial genomes database and comparative analysis system, Nucleic Acids Research, Volume 40, Issue D1, 1 January 2012, Pages D115–D122, https://doi.org/10.1093/nar/gkr1044
+        link: |
+            https://doi.org/10.1093/nar/gkr1044
+    -
+        display-text: |
+            Minoru Kanehisa, Susumu Goto, Yoko Sato, Miho Furumichi, Mao Tanabe, KEGG for integration and interpretation of large-scale molecular data sets, Nucleic Acids Research, Volume 40, Issue D1, 1 January 2012, Pages D109–D114, https://doi.org/10.1093/nar/gkr988
+        link: |
+            https://doi.org/10.1093/nar/gkr988
 
+    -
+        display-text: |
+            Enzyme Commission (EC)
+
+    -
+        display-text: |
+            Ron Caspi, Richard Billington, Luciana Ferrer, Hartmut Foerster, Carol A. Fulcher, Ingrid M. Keseler, Anamika Kothari, Markus Krummenacker, Mario Latendresse, Lukas A. Mueller, Quang Ong, Suzanne Paley, Pallavi Subhraveti, Daniel S. Weaver, Peter D. Karp, The MetaCyc database of metabolic pathways and enzymes and the BioCyc collection of pathway/genome databases, Nucleic Acids Research, Volume 44, Issue D1, 4 January 2016, Pages D471–D480, https://doi.org/10.1093/nar/gkv1164
+        link: |
+            https://doi.org/10.1093/nar/gkv1164
 
 
 

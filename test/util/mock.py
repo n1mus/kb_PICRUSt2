@@ -65,7 +65,7 @@ def get_mock_dfu(dataset):
             enigma50by30_noAttrMaps_noSampleSet : 'AmpliconMatrix.json',
             enigma50by30 : 'AmpliconMatrix.json',
             enigma50by30_rowAttrMap : 'row_AttributeMapping.json',
-            dummy_10by8: 'get_objects_AmpliconSet.json',
+            #dummy_10by8: 'get_objects_AmpliconSet.json',
             dummy_10by8_AmpMat: 'get_objects_AmpliconMatrix.json',
             dummy_10by8_AttrMap: 'get_objects_AttributeMapping.json',
             }[upa]

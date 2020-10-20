@@ -31,7 +31,10 @@ def run_check(cmd):
 
     logging.info(f'Running PICRUSt2 via command `{cmd}`')
 
+    t0 = time.time()
     completed_proc = subprocess.run(cmd, shell=True, executable='/bin/bash', stdout=sys.stdout, stderr=sys.stdout)
+
+    logging.info('Completed in %.1f minutes' % ((time.time()-t0)/60))
 
     if completed_proc.returncode != 0:
         msg = (
@@ -123,7 +126,7 @@ class OutfileWrangler:
 
 
     #####
-    ##### TODO test
+    #####
     @staticmethod
     def pad_0_vecs(tsv_flpth, amp_mat):
         '''
@@ -429,50 +432,62 @@ class kb_PICRUSt2:
 
         ## Community FPs ##
 
-        var.objects_created.append(dict(
-            ref=var.fpu.import_func_profile(dict(
-                workspace_id=var.params['workspace_id'],
-                func_profile_obj_name='%s.PICRUSt2_path_abun_unstrat' % amp_mat.name,
-                original_matrix_ref=FP_amp_mat_ref,
-                profile_file_path=tsv_flpth_l[0],
-                profile_type='mg',
-                profile_category='community',
-                data_epistemology='predicted',
-                epistemology_method='PICRUSt2',
+        if 'sample_set_ref' not in amp_mat.obj:
+            msg = (
+                'Sorry, input AmpliconMatrix %s does not have a SampleSet reference '
+                'and so creating community FunctionalProfiles is prohibited. '
+                'Please see importers to link a SampleSet'
+                % amp_mat.name
+            )
+            logging.warning(msg)
+            var.warnings.append(msg)
+        
+        else:
+
+            var.objects_created.append(dict(
+                ref=var.fpu.import_func_profile(dict(
+                    workspace_id=var.params['workspace_id'],
+                    func_profile_obj_name='%s.PICRUSt2_path_abun_unstrat' % amp_mat.name,
+                    original_matrix_ref=FP_amp_mat_ref,
+                    profile_file_path=tsv_flpth_l[0],
+                    profile_type='mg',
+                    profile_category='community',
+                    data_epistemology='predicted',
+                    epistemology_method='PICRUSt2',
+                    description='MetaCyc vs. Sample',
+                ))['func_profile_ref'],
                 description='MetaCyc vs. Sample',
-            ))['func_profile_ref'],
-            description='MetaCyc vs. Sample',
-        ))
+            ))
 
-        var.objects_created.append(dict(
-            ref=var.fpu.import_func_profile(dict(
-                workspace_id=var.params['workspace_id'],
-                func_profile_obj_name='%s.PICRUSt2_EC_pred_metagenome_unstrat' % amp_mat.name,
-                original_matrix_ref=FP_amp_mat_ref,
-                profile_file_path=tsv_flpth_l[1],
-                profile_type='mg',
-                profile_category='community',
-                data_epistemology='predicted',
-                epistemology_method='PICRUSt2',
-                description='EC vs. sample',
-            ))['func_profile_ref'],
-            description='EC vs. Sample',
-        ))
+            var.objects_created.append(dict(
+                ref=var.fpu.import_func_profile(dict(
+                    workspace_id=var.params['workspace_id'],
+                    func_profile_obj_name='%s.PICRUSt2_EC_pred_metagenome_unstrat' % amp_mat.name,
+                    original_matrix_ref=FP_amp_mat_ref,
+                    profile_file_path=tsv_flpth_l[1],
+                    profile_type='mg',
+                    profile_category='community',
+                    data_epistemology='predicted',
+                    epistemology_method='PICRUSt2',
+                    description='EC vs. sample',
+                ))['func_profile_ref'],
+                description='EC vs. Sample',
+            ))
 
-        var.objects_created.append(dict(
-            ref=var.fpu.import_func_profile(dict(
-                workspace_id=var.params['workspace_id'],
-                func_profile_obj_name='%s.PICRUSt2_KO_pred_metagenome_unstrat' % amp_mat.name,
-                original_matrix_ref=FP_amp_mat_ref,
-                profile_file_path=tsv_flpth_l[2],
-                profile_type='mg',
-                profile_category='community',
-                data_epistemology='predicted',
-                epistemology_method='PICRUSt2',
+            var.objects_created.append(dict(
+                ref=var.fpu.import_func_profile(dict(
+                    workspace_id=var.params['workspace_id'],
+                    func_profile_obj_name='%s.PICRUSt2_KO_pred_metagenome_unstrat' % amp_mat.name,
+                    original_matrix_ref=FP_amp_mat_ref,
+                    profile_file_path=tsv_flpth_l[2],
+                    profile_type='mg',
+                    profile_category='community',
+                    data_epistemology='predicted',
+                    epistemology_method='PICRUSt2',
+                    description='KO vs. Sample',
+                ))['func_profile_ref'],
                 description='KO vs. Sample',
-            ))['func_profile_ref'],
-            description='KO vs. Sample',
-        ))
+            ))
 
         ## Amplicon FPs ##
 
@@ -490,7 +505,6 @@ class kb_PICRUSt2:
             ))['func_profile_ref'],
             description='Amplicon vs. MetaCyc',
         ))
-
 
         var.objects_created.append(dict(
             ref=var.fpu.import_func_profile(dict(
@@ -521,6 +535,7 @@ class kb_PICRUSt2:
             ))['func_profile_ref'],
             description='Amplicon vs. KO',
         ))
+
 
         #
         ##
@@ -561,7 +576,7 @@ class kb_PICRUSt2:
 
         tsv_flnm_l = [
             'pathways_out/path_abun_unstrat.tsv', 
-            #'EC_predicted.tsv',
+            #'EC_predicted.tsv', TODO this would need the axis labels passed in TODO log scale it too
             #'KO_predicted.tsv',
         ]
 

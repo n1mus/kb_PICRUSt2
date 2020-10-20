@@ -78,32 +78,70 @@ class kb_PICRUSt2Test(unittest.TestCase):
 
     ####################
     ####################
+    @patch.dict('kb_PICRUSt2.util.kbase_obj.var', values={'dfu': get_mock_dfu('dummy_10by8')})
     def test_OutfileWrangler(self):
         '''
         '''
+        run_dir = os.path.join('/kb/module/work/tmp', 'test_OutfileWranger_' + str(uuid.uuid4()))
+        os.mkdir(run_dir)
 
-        # Test `OutfileWrangler.parse_picrust2_traits`
+        ## Test `OutfileWrangler.parse_picrust2_traits` ##
+        with self.subTest('Test OutfileWrangler.parse_picrust2_traits'):
         
-        flpth = '/kb/module/test/data/by_dataset_input/dummy_10by8/return/PICRUSt2_output/pathways_out/path_abun_predictions.tsv.gz'
+            flpth = '/kb/module/test/data/by_dataset_input/dummy_10by8/return/PICRUSt2_output/pathways_out/path_abun_predictions.tsv.gz'
 
-        id2traits_d = OutfileWrangler.parse_picrust2_traits(flpth)
+            id2traits_d = OutfileWrangler.parse_picrust2_traits(flpth)
 
-        ans = {
-           "amplicon_id_0": "N10-formyl-tetrahydrofolate biosynthesis,4-hydroxyphenylacetate degradation,aerobactin biosynthesis,superpathway of chorismate metabolism,homolactic fermentation",
-           "amplicon_id_1":                                          "4-hydroxyphenylacetate degradation,aerobactin biosynthesis,superpathway of chorismate metabolism,homolactic fermentation",
-           "amplicon_id_2":                                                                             "aerobactin biosynthesis,superpathway of chorismate metabolism,homolactic fermentation",
-           "amplicon_id_3":                                                                                                     "superpathway of chorismate metabolism,homolactic fermentation",
-           "amplicon_id_4":                                                                                                                                           "homolactic fermentation",
-           "amplicon_id_5":                                                                                                                                                                  "",
-           "amplicon_id_6": "N10-formyl-tetrahydrofolate biosynthesis,4-hydroxyphenylacetate degradation,aerobactin biosynthesis,superpathway of chorismate metabolism,homolactic fermentation",
-           "amplicon_id_7": "N10-formyl-tetrahydrofolate biosynthesis,4-hydroxyphenylacetate degradation,aerobactin biosynthesis,superpathway of chorismate metabolism",
-           "amplicon_id_8": "N10-formyl-tetrahydrofolate biosynthesis,4-hydroxyphenylacetate degradation,aerobactin biosynthesis",
-           "amplicon_id_9": "N10-formyl-tetrahydrofolate biosynthesis,4-hydroxyphenylacetate degradation"
-        }
+            ans = {
+               "amplicon_id_0": "N10-formyl-tetrahydrofolate biosynthesis,4-hydroxyphenylacetate degradation,aerobactin biosynthesis,superpathway of chorismate metabolism,homolactic fermentation",
+               "amplicon_id_1":                                          "4-hydroxyphenylacetate degradation,aerobactin biosynthesis,superpathway of chorismate metabolism,homolactic fermentation",
+               "amplicon_id_2":                                                                             "aerobactin biosynthesis,superpathway of chorismate metabolism,homolactic fermentation",
+               "amplicon_id_3":                                                                                                     "superpathway of chorismate metabolism,homolactic fermentation",
+               "amplicon_id_4":                                                                                                                                           "homolactic fermentation",
+               "amplicon_id_5":                                                                                                                                                                  "",
+               "amplicon_id_6": "N10-formyl-tetrahydrofolate biosynthesis,4-hydroxyphenylacetate degradation,aerobactin biosynthesis,superpathway of chorismate metabolism,homolactic fermentation",
+               "amplicon_id_7": "N10-formyl-tetrahydrofolate biosynthesis,4-hydroxyphenylacetate degradation,aerobactin biosynthesis,superpathway of chorismate metabolism",
+               "amplicon_id_8": "N10-formyl-tetrahydrofolate biosynthesis,4-hydroxyphenylacetate degradation,aerobactin biosynthesis",
+               "amplicon_id_9": "N10-formyl-tetrahydrofolate biosynthesis,4-hydroxyphenylacetate degradation"
+            }
 
-        self.assertTrue(id2traits_d == ans)
+            self.assertTrue(id2traits_d == ans)
 
-        # TODO Test OutfileWrangler.pad_0_vecs
+        ## Test `OutfileWrangler.pad_0_vecs` ##
+        with self.subTest('Test OutfileWrangler.pad_0_vecs'):
+
+            amp_mat = AmpliconMatrix(dummy_10by8_AmpMat)
+
+            # amplicon x func
+            flpth0 = '/kb/module/test/data/by_dataset_input/dummy_10by8/return/PICRUSt2_output/pathways_out/path_abun_predictions.tsv'
+            flpth1 = os.path.join(run_dir, os.path.basename(flpth0))
+
+            df0 = pd.read_csv(flpth0, sep='\t', index_col=0, header=0)
+            df_drop = df0.drop(index=df0.index[np.where(df0.sum(axis=1) == 0)][0])
+            df_drop.to_csv(flpth1, sep='\t')
+
+            OutfileWrangler.pad_0_vecs(flpth1, amp_mat)
+            df1 = pd.read_csv(flpth1, sep='\t', index_col=0, header=0)
+
+            assert np.allclose(
+                df0.values,
+                df1.values
+            )
+            
+            # func x sample    
+            flpth1 = os.path.join(run_dir, os.path.basename(flpth0))
+
+            df0 = pd.read_csv(flpth0, sep='\t', index_col=0, header=0)
+            df_drop = df0.drop(index=df0.index[np.where(df0.sum(axis=1) == 0)][0])
+            df_drop.to_csv(flpth1, sep='\t')
+
+            OutfileWrangler.pad_0_vecs(flpth1, amp_mat)
+            df1 = pd.read_csv(flpth1, sep='\t', index_col=0, header=0)
+
+            assert np.allclose(
+                df0.values,
+                df1.values
+            )
 
 
     ####################
@@ -518,6 +556,8 @@ class kb_PICRUSt2Test(unittest.TestCase):
             cls.wsClient.delete_workspace({'workspace': cls.wsName})
             print('Test workspace was deleted')
         print('Tests run:', cls.list_tests())
+        dec = '!!!' * 300
+        print(dec, "DON'T FORGET TO SEE HTML(S)", dec)
 
     def shortDescription(self):
         '''Override unittest using test*() docstrings in lieu of test*() method name in output summary'''
@@ -542,13 +582,13 @@ unit_tests = [
     'test_AmpliconSet_and_AmpliconMatrix', 'test_AttributeMapping'
 ]
 run_tests = [
-    'test_has_row_AttributeMapping',
+    'test_run_check',
 ]
 
 for key, value in kb_PICRUSt2Test.__dict__.copy().items():
     if key.startswith('test') and callable(value):
         if key not in run_tests:
-            #delattr(kb_PICRUSt2Test, key)
+            delattr(kb_PICRUSt2Test, key)
             pass
 
 
