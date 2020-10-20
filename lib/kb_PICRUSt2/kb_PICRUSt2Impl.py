@@ -296,7 +296,7 @@ class kb_PICRUSt2:
         
         
         var.out_dir = os.path.join(var.return_dir, 'PICRUSt2_output')
-        log_flpth = os.path.join(var.return_dir, 'log.txt')
+        log_flpth = os.path.join(var.return_dir, 'cmd_log.txt')
 
 
         cmd_pipeline = ' '.join([
@@ -399,7 +399,7 @@ class kb_PICRUSt2:
         tsv_dir = os.path.join(var.shared_folder, 'tsv_dir_kbpicrust2' + str(uuid.uuid4()))
         os.mkdir(tsv_dir)
 
-        # These are PICRUSt2 output tsvgz needed for FPs
+        # These are PICRUSt2 output tsvgz needed for FPs TODO make this list  and axisLabls mappings app globals
         tsvgz_relflpth_l = [
             'pathways_out/path_abun_unstrat.tsv.gz', # func x sample
             'EC_metagenome_out/pred_metagenome_unstrat.tsv.gz', # func x sample
@@ -576,8 +576,8 @@ class kb_PICRUSt2:
 
         tsv_flnm_l = [
             'pathways_out/path_abun_unstrat.tsv', 
-            #'EC_predicted.tsv', TODO this would need the axis labels passed in TODO log scale it too
-            #'KO_predicted.tsv',
+            'EC_predicted.tsv',
+            'KO_predicted.tsv',
         ]
 
         tsvgz_flpth_l = [os.path.join(var.out_dir, tsv_flnm + '.gz') for tsv_flnm in tsv_flnm_l]

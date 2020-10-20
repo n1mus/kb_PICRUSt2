@@ -18,13 +18,15 @@ from .config import var
 from .dprint import dprint
 
 t0 = None
-MAX_LEN = 3000 # 3000^2 is largest size supported by kaleido's chromium JSON stdin
+MAX_LEN = 2800 # 3000^2 is largest size supported by kaleido's chromium JSON stdin TODO adjust to < 9M? <8M?
+
+
 
 ####################################################################################################
 ####################################################################################################
-def do_heatmap(tsvgz_flpth, png_flpth, html_flpth, cluster=True, png_from='plotly'): # TODO also do subset len, log coloring?
+def do_heatmap(tsvgz_flpth, png_flpth, html_flpth, cluster=True, png_from='plotly'): # TODO log coloring?
     '''
-    tsvgz_flpth: data to heatmap
+    tsvgz_flpth: data to heatmap. it is a TSV GZ in PICRUSt2's var.out_dir
     png_flpth: where to write png heatmap
     html_flpth: where to write plotly interactive html
     cluster: scipy clustering
@@ -45,8 +47,8 @@ def do_heatmap(tsvgz_flpth, png_flpth, html_flpth, cluster=True, png_from='plotl
     ###
     ###
     if df.shape[0] > MAX_LEN or df.shape[1] > MAX_LEN:
-        row_ordering = df.sum(axis=1).values.argsort()
-        col_ordering = df.sum(axis=0).values.argsort()
+        row_ordering = df.sum(axis=1).values.argsort()[::-1]
+        col_ordering = df.sum(axis=0).values.argsort()[::-1]
     
         df = df.iloc[row_ordering, col_ordering]
         df = df.iloc[:MAX_LEN,:MAX_LEN]
@@ -91,8 +93,8 @@ def do_heatmap(tsvgz_flpth, png_flpth, html_flpth, cluster=True, png_from='plotl
         width=1500,
         title_text=os.path.basename(tsvgz_flpth)[:-3] + '<br>shape=' + str(df.shape),
         title_x=0.5,
-        yaxis_title='MetaCyc pathway', # TODO map these from code to full+code
-        xaxis_title='sample',
+        xaxis_title=HTMLReportWriter.tsvgzFlpth2axisLabels.get(tsvgz_flpth, ('no axis label', 'no axis label'))[1],
+        yaxis_title=HTMLReportWriter.tsvgzFlpth2axisLabels.get(tsvgz_flpth, ('no axis label', 'no axis label'))[0],
         xaxis_tickangle=45,
     )
 
@@ -166,6 +168,10 @@ class HTMLReportWriter:
         if not os.path.exists(report_dir):
             os.mkdir(report_dir)
 
+        # dict from TSVGZ absolute filepaths to their axis labels 
+        self.__class__.tsvgzFlpth2axisLabels = {
+            os.path.join(var.out_dir, k): v for k, v in var.tsvgzRelFlpth2axisLabels.items()
+        }
 
     def _compile_cmd(self):
         
@@ -216,7 +222,7 @@ class HTMLReportWriter:
             return '/'.join(flpth.split('/')[-2:])
 
         # build replacement string
-        txt = '<p><i>Heatmaps restricted by top %d vector sums per dimension</i></p>' % MAX_LEN 
+        txt = '<p><i>Heatmaps are restricted by top %d vector sums per dimension. See returned files for full TSVs.</i></p>' % MAX_LEN 
         txt += '<div id="imgLink">\n'
         for png_flpth, html_flpth in zip(png_flpth_l, html_flpth_l):
             txt += '<p><a href="%s" target="_blank"><img alt="%s" src="%s" title="Open to interact"></a></p>\n' % (

@@ -582,7 +582,7 @@ unit_tests = [
     'test_AmpliconSet_and_AmpliconMatrix', 'test_AttributeMapping'
 ]
 run_tests = [
-    'test_run_check',
+    'test_has_row_AttributeMapping',
 ]
 
 for key, value in kb_PICRUSt2Test.__dict__.copy().items():
