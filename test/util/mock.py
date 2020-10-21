@@ -8,6 +8,7 @@ import json
 from installed_clients.DataFileUtilClient import DataFileUtil
 from installed_clients.KBaseReportClient import KBaseReport
 from installed_clients.GenericsAPIClient import GenericsAPI
+from installed_clients.FunctionalProfileUtilClient import FunctionalProfileUtil
 
 from kb_PICRUSt2.kb_PICRUSt2Impl import run_check
 from kb_PICRUSt2.util.dprint import dprint
@@ -20,6 +21,22 @@ from .upa import *
 testData_dir = '/kb/module/test/data'
 ##################################
 ##################################
+
+
+
+def get_mock_fpu(dataset=None):
+    mock_fpu = create_autospec(FunctionalProfileUtil, instance=True)
+
+    def mock_import_func_profile(params):
+        logging.info('Mocking `fpu.import_func_profile` with `params=%s`' % str(params))
+
+        return dict(
+            func_profile_ref='func/profile/ref'
+        )
+
+    mock_fpu.import_func_profile.side_effect = mock_import_func_profile
+
+    return mock_fpu
 
 
 def get_mock_gapi(dataset):
@@ -60,11 +77,14 @@ def get_mock_dfu(dataset):
     def mock_dfu_get_objects(params):
         logging.info('Mocking `dfu.get_objects` with `params=%s`' % str(params))
 
-        upa = params['object_refs'][0]
+        upa_path = params['object_refs'][0]
+        upa = upa_path.split(';')[-1] # last UPA in ref path
         flnm = {
             enigma50by30_noAttrMaps_noSampleSet : 'AmpliconMatrix.json',
             enigma50by30 : 'AmpliconMatrix.json',
             enigma50by30_rowAttrMap : 'row_AttributeMapping.json',
+            enigma17770by511: 'AmpliconMatrix.json',
+            enigma17770by511_rowAttrMap: 'row_AttributeMapping.json',
             #dummy_10by8: 'get_objects_AmpliconSet.json',
             dummy_10by8_AmpMat: 'get_objects_AmpliconMatrix.json',
             dummy_10by8_AttrMap: 'get_objects_AttributeMapping.json',

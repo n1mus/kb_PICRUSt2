@@ -22,6 +22,7 @@ from .util.error import *
 from .util.dprint import dprint
 from .util.config import var, reset_var
 from .util.report import HTMLReportWriter
+from .util.params import Params
 
 
 ####################################################################################################
@@ -132,18 +133,8 @@ class OutfileWrangler:
         '''
         PICRUSt2 drops ids/samples that are all 0s
         Restore them in original order here
-        By 'id' I mean 'amplicon'
         '''
-        flnm2index =  {
-            'path_abun_unstrat.tsv': 'sample', # func x sample
-            'EC_pred_metagenome_unstrat.tsv': 'sample', # func x sample
-            'KO_pred_metagenome_unstrat.tsv': 'sample', # func x sample
-            'path_abun_predictions.tsv': 'amplicon', # amplicon x func
-            'EC_predicted.tsv': 'amplicon', # amplicon x func
-            'KO_predicted.tsv': 'amplicon', # amplicon x func
-        }
-
-        index = flnm2index[os.path.basename(tsv_flpth)]
+        index = var.tsvFlnm2Index[os.path.basename(tsv_flpth)]
         df_partial = pd.read_csv(tsv_flpth, sep='\t', index_col=0)
 
         # orient PICRUSt2 output matrix as something vs. func
@@ -153,7 +144,7 @@ class OutfileWrangler:
         elif index == 'amplicon':
             id_l_full = amp_mat.obj['data']['row_ids']
         else:
-            raise Exception()
+            raise Exception(index)
 
         if df_partial.shape[0] == len(id_l_full):
             return
@@ -227,9 +218,18 @@ class kb_PICRUSt2:
 ####################################################################################################
 ####################################################################################################
 
-        logging.info('params: %s' % str(params))
-        
+        #
+        ##
+        ### params, app-globals, directories, etc
+        ####
+        #####
 
+        logging.info('params: %s' % str(params))
+
+        params = Params(params)
+
+        dprint('params', run=locals())
+        
         reset_var() # clear all fields but `debug`
 
         var.update(
@@ -240,7 +240,8 @@ class kb_PICRUSt2:
             gapi=GenericsAPI(self.callback_url, service_ver='dev'),
             shared_folder=self.shared_folder,
             run_dir=os.path.join(self.shared_folder, 'run_dir_picrust2_' + str(uuid.uuid4())),
-            warnings= [],
+            warnings=[],
+            objects_created=[],
         )
 
         os.mkdir(var.run_dir) # for this API-method run
@@ -263,14 +264,16 @@ class kb_PICRUSt2:
         # instantiate
 
         amp_mat = AmpliconMatrix(params['amplicon_matrix_upa']) 
-        if amp_mat.row_attrmap_upa:
-            row_attrmap = AttributeMapping(amp_mat.row_attrmap_upa)
+        if 'row_attributemapping_ref' in amp_mat.obj:
+            row_attrmap = AttributeMapping(amp_mat.obj['row_attributemapping_ref'], amp_mat)
         else:
             msg = (
                 "Input AmpliconMatrix "
-                "does not have a row AttributeMapping to assign PICRUSt2 traits to. "
-                "To create one, ??"
+                "does not have a row AttributeMapping to assign PICRUSt2 functions to. "
+                "To create one, import the amplicon metadata as an Attribute Mapping first, "
+                "then select it when importing the Amplicon Matrix"
             )
+            logging.warning(msg)
             var.warnings.append(msg)
 
 
@@ -352,8 +355,6 @@ class kb_PICRUSt2:
         attribute = 'PICRUSt2 MetaCyc Pathway Predictions'
         source = 'kb_PICRUSt2/run_picrust2_pipeline'
 
-        var.objects_created = []
-
         # if row AttributeMapping, 
         # update that and referencing objs
         if amp_mat.row_attrmap_upa is not None: 
@@ -365,8 +366,8 @@ class kb_PICRUSt2:
             row_attrmap_upa_new = row_attrmap.save()
 
             # update AmpliconMatrix which references row AttributeMapping
-            amp_mat.update_row_attributemapping_ref(row_attrmap_upa_new)
-            amp_mat_upa_new = amp_mat.save(name=params.get('output_name'))         
+            amp_mat.obj['row_attributemapping_ref'] = row_attrmap_upa_new
+            amp_mat_upa_new = amp_mat.save(name=params.getd('output_name'))         
 
             var.objects_created.extend([
                 {'ref': row_attrmap_upa_new, 'description': 'Added or updated attribute `%s`' % attribute}, 
@@ -376,18 +377,22 @@ class kb_PICRUSt2:
             FP_amp_mat_ref = amp_mat_upa_new
         
         else:
-
             FP_amp_mat_ref = params['amplicon_matrix_upa']
     
        
 
         #
         ##
-        ### save FunctionalProfile objects
+        ### prepare TSV dir
         ####
         #####
 
-        def gunzip(read, write):
+        logging.info('Preparing TSV directory')
+
+        tsv_dir = os.path.join(var.shared_folder, 'kbp2_tsv_dir_' + str(uuid.uuid4()))
+        os.mkdir(tsv_dir)
+
+        def gunzip_to(read, write):
             '''
             Gunzip from `read` to `write`
             '''
@@ -395,44 +400,30 @@ class kb_PICRUSt2:
                 with open(write, 'wb') as fh_write:
                     shutil.copyfileobj(fh_read, fh_write)
 
-
-        tsv_dir = os.path.join(var.shared_folder, 'tsv_dir_kbpicrust2' + str(uuid.uuid4()))
-        os.mkdir(tsv_dir)
-
-        # These are PICRUSt2 output tsvgz needed for FPs TODO make this list  and axisLabls mappings app globals
-        tsvgz_relflpth_l = [
-            'pathways_out/path_abun_unstrat.tsv.gz', # func x sample
-            'EC_metagenome_out/pred_metagenome_unstrat.tsv.gz', # func x sample
-            'KO_metagenome_out/pred_metagenome_unstrat.tsv.gz', # func x sample
-            'pathways_out/path_abun_predictions.tsv.gz', # id x func
-            'EC_predicted.tsv.gz', # id x func
-            'KO_predicted.tsv.gz', # id x func
-        ]
-
-        # These are destination tsvs to give to FPU
-        tsv_flpth_l = [os.path.join(tsv_dir, os.path.basename(tsvgz_relflpth[:-3])) for tsvgz_relflpth in tsvgz_relflpth_l]
-        tsv_flpth_l[1] = os.path.dirname(tsv_flpth_l[1]) + '/EC_' + os.path.basename(tsv_flpth_l[1])
-        tsv_flpth_l[2] = os.path.dirname(tsv_flpth_l[2]) + '/KO_' + os.path.basename(tsv_flpth_l[2])
-
-        # Gunzip/copy
-        for tsvgz_relflpth, tsv_flpth in zip(tsvgz_relflpth_l, tsv_flpth_l):
-            gunzip(
+        for tsvgz_relflpth, tsv_flnm in var.tsvgzRelFlpth2TsvFlnm.items():
+            gunzip_to(
                 os.path.join(var.out_dir, tsvgz_relflpth),
-                tsv_flpth
+                os.path.join(tsv_dir, tsv_flnm)
             )
+
+        #
+        ##
+        ### save FunctionalProfile objects
+        ####
+        #####
+
+        logging.info('FunctionalProfile business')
+
+        tsv_flpth_l = [os.path.join(tsv_dir, tsv_flnm) for tsv_flnm in var.tsvgzRelFlpth2TsvFlnm.values()]
 
         # Pad 0 ids/samples
         for tsv_flpth in tsv_flpth_l:
             OutfileWrangler.pad_0_vecs(tsv_flpth, amp_mat)
 
-        dprint('tsv_flpth_l', run=locals())
 
+        ## Community FPs ## TODO test the FP options
 
-
-
-        ## Community FPs ##
-
-        if 'sample_set_ref' not in amp_mat.obj:
+        if params.getd('create_sample_fps') is True and 'sample_set_ref' not in amp_mat.obj:
             msg = (
                 'Sorry, input AmpliconMatrix %s does not have a SampleSet reference '
                 'and so creating community FunctionalProfiles is prohibited. '
@@ -442,7 +433,7 @@ class kb_PICRUSt2:
             logging.warning(msg)
             var.warnings.append(msg)
         
-        else:
+        elif params.getd('create_sample_fps') is True and 'sample_set_ref' in amp_mat.obj:
 
             var.objects_created.append(dict(
                 ref=var.fpu.import_func_profile(dict(
@@ -489,52 +480,54 @@ class kb_PICRUSt2:
                 description='KO vs. Sample',
             ))
 
+
         ## Amplicon FPs ##
+        if params.getd('create_amplicon_fps') is True:
 
-        var.objects_created.append(dict(
-            ref=var.fpu.import_func_profile(dict(
-                workspace_id=var.params['workspace_id'],
-                func_profile_obj_name='%s.PICRUSt2_path_abun_predictions' % amp_mat.name,
-                original_matrix_ref=FP_amp_mat_ref,
-                profile_file_path=tsv_flpth_l[3],
-                profile_type='amplicon',
-                profile_category='organism',
-                data_epistemology='predicted',
-                epistemology_method='PICRUSt2',
+            var.objects_created.append(dict(
+                ref=var.fpu.import_func_profile(dict(
+                    workspace_id=var.params['workspace_id'],
+                    func_profile_obj_name='%s.PICRUSt2_path_abun_predictions' % amp_mat.name,
+                    original_matrix_ref=FP_amp_mat_ref,
+                    profile_file_path=tsv_flpth_l[3],
+                    profile_type='amplicon',
+                    profile_category='organism',
+                    data_epistemology='predicted',
+                    epistemology_method='PICRUSt2',
+                    description='Amplicon vs. MetaCyc',
+                ))['func_profile_ref'],
                 description='Amplicon vs. MetaCyc',
-            ))['func_profile_ref'],
-            description='Amplicon vs. MetaCyc',
-        ))
+            ))
 
-        var.objects_created.append(dict(
-            ref=var.fpu.import_func_profile(dict(
-                workspace_id=var.params['workspace_id'],
-                func_profile_obj_name='%s.PICRUSt2_EC_predicted' % amp_mat.name,
-                original_matrix_ref=FP_amp_mat_ref,
-                profile_file_path=tsv_flpth_l[4],
-                profile_type='amplicon',
-                profile_category='organism',
-                data_epistemology='predicted',
-                epistemology_method='PICRUSt2',
+            var.objects_created.append(dict(
+                ref=var.fpu.import_func_profile(dict(
+                    workspace_id=var.params['workspace_id'],
+                    func_profile_obj_name='%s.PICRUSt2_EC_predicted' % amp_mat.name,
+                    original_matrix_ref=FP_amp_mat_ref,
+                    profile_file_path=tsv_flpth_l[4],
+                    profile_type='amplicon',
+                    profile_category='organism',
+                    data_epistemology='predicted',
+                    epistemology_method='PICRUSt2',
+                    description='Amplicon vs. EC',
+                ))['func_profile_ref'],
                 description='Amplicon vs. EC',
-            ))['func_profile_ref'],
-            description='Amplicon vs. EC',
-        ))
- 
-        var.objects_created.append(dict(
-            ref=var.fpu.import_func_profile(dict(
-                workspace_id=var.params['workspace_id'],
-                func_profile_obj_name='%s.PICRUSt2_KO_predicted' % amp_mat.name,
-                original_matrix_ref=FP_amp_mat_ref,
-                profile_file_path=tsv_flpth_l[5],
-                profile_type='amplicon',
-                profile_category='organism',
-                data_epistemology='predicted',
-                epistemology_method='PICRUSt2',
+            ))
+     
+            var.objects_created.append(dict(
+                ref=var.fpu.import_func_profile(dict(
+                    workspace_id=var.params['workspace_id'],
+                    func_profile_obj_name='%s.PICRUSt2_KO_predicted' % amp_mat.name,
+                    original_matrix_ref=FP_amp_mat_ref,
+                    profile_file_path=tsv_flpth_l[5],
+                    profile_type='amplicon',
+                    profile_category='organism',
+                    data_epistemology='predicted',
+                    epistemology_method='PICRUSt2',
+                    description='Amplicon vs. KO',
+                ))['func_profile_ref'],
                 description='Amplicon vs. KO',
-            ))['func_profile_ref'],
-            description='Amplicon vs. KO',
-        ))
+            ))
 
 
         #
@@ -543,21 +536,7 @@ class kb_PICRUSt2:
         ####
         #####
 
-        ##
-        ## input tsv(gz)
-
-        ''' Plotting input tsv tricky because may need log scale
-        
-        seq_abundance_table_tsvgz_flpth = os.path.join(var.run_dir, os.path.basename(seq_abundance_table_flpth) + '.gz')
-
-        subprocess.run(
-                'gzip -c %s > %s' % (seq_abundance_table_flpth, seq_abundance_table_tsvgz_flpth),
-                stdout=sys.stdout,
-                stderr=sys.stderr,
-                shell=True,
-                executable='/bin/bash'
-        )
-        '''
+        logging.info('Report business')
 
         ##
         ## PICRUSt2 output tsvgzs
@@ -574,32 +553,24 @@ class kb_PICRUSt2:
         'KO_metagenome/pred_metagenome_unstrat.tsv',
         '''
 
-        tsv_flnm_l = [
-            'pathways_out/path_abun_unstrat.tsv', 
-            'EC_predicted.tsv',
-            'KO_predicted.tsv',
-        ]
-
-        tsvgz_flpth_l = [os.path.join(var.out_dir, tsv_flnm + '.gz') for tsv_flnm in tsv_flnm_l]
-        
         ##
         ## report
 
         var.report_dir = os.path.join(var.run_dir, 'report')
 
         t0 = time.time()
-        html_flpth = HTMLReportWriter(
+        report_html_flpth = HTMLReportWriter(
                 [cmd_pipeline, cmd_description], 
-                tsvgz_flpth_l, 
+                tsv_flpth_l,
                 var.report_dir
         ).write()
         t = time.time() - t0
 
-        dprint('Done with heatmaps. Took %.1f min' % (t/60))
+        dprint('Done with all %d heatmaps and report. Took %.1f min' % (len(tsv_flpth_l), (t/60)))
 
         html_links = [{
             'path': var.report_dir,
-            'name': os.path.basename(html_flpth),
+            'name': os.path.basename(report_html_flpth),
         }]
 
 
@@ -626,6 +597,8 @@ class kb_PICRUSt2:
             'report_object_name': 'kb_PICRUSt2_report',
             'workspace_name': params['workspace_name'],
         }
+
+        var.params_report = params_report
 
         report = var.kbr.create_extended_report(params_report)
 

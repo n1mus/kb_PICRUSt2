@@ -24,9 +24,9 @@ MAX_LEN = 2800 # 3000^2 is largest size supported by kaleido's chromium JSON std
 
 ####################################################################################################
 ####################################################################################################
-def do_heatmap(tsvgz_flpth, png_flpth, html_flpth, cluster=True, png_from='plotly'): # TODO log coloring?
+def do_heatmap(tsv_flpth, png_flpth, html_flpth): # TODO log coloring?
     '''
-    tsvgz_flpth: data to heatmap. it is a TSV GZ in PICRUSt2's var.out_dir
+    tsv_flpth: data to heatmap. it is a TSV GZ in PICRUSt2's var.out_dir
     png_flpth: where to write png heatmap
     html_flpth: where to write plotly interactive html
     cluster: scipy clustering
@@ -39,10 +39,10 @@ def do_heatmap(tsvgz_flpth, png_flpth, html_flpth, cluster=True, png_from='plotl
     '''
     global t0
 
-    df = pd.read_csv(tsvgz_flpth, sep='\t', index_col=0, compression='gzip')
+    df = pd.read_csv(tsv_flpth, sep='\t', index_col=0)
+    tsv_flnm = os.path.basename(tsv_flpth)
 
     dprint('df.shape', run=locals())
-    r, c = df.shape
 
     ###
     ###
@@ -53,29 +53,27 @@ def do_heatmap(tsvgz_flpth, png_flpth, html_flpth, cluster=True, png_from='plotl
         df = df.iloc[row_ordering, col_ordering]
         df = df.iloc[:MAX_LEN,:MAX_LEN]
 
-        cluster = True
 
     dprint('df.shape', run=locals())
 
     ###
     ###
-    if cluster == True:
-        logging.info('Clustering heatmap for %s' % os.path.basename(tsvgz_flpth))
+    logging.info('Clustering heatmap for %s' % os.path.basename(tsv_flpth))
 
-        t0 = time.time()
-        row_ordering = leaves_list(linkage(df))
-        t_cluster_row = time.time() - t0
-        t0 = time.time()
-        col_ordering = leaves_list(linkage(df.T))
-        t_cluster_col = time.time() - t0
+    t0 = time.time()
+    row_ordering = leaves_list(linkage(df))
+    t_cluster_row = time.time() - t0
+    t0 = time.time()
+    col_ordering = leaves_list(linkage(df.T))
+    t_cluster_col = time.time() - t0
 
-        dprint('t_cluster_row', 't_cluster_col', run=locals())
+    dprint('t_cluster_row', 't_cluster_col', run=locals())
 
-        df = df.iloc[row_ordering, col_ordering]
+    df = df.iloc[row_ordering, col_ordering]
 
     ###
     ###
-    logging.info('Generating plotly interactive heatmap for %s' % os.path.basename(tsvgz_flpth))
+    logging.info('Generating plotly interactive heatmap for %s' % os.path.basename(tsv_flpth))
 
     t0 = time.time()
     fig = go.Figure(go.Heatmap(
@@ -91,10 +89,10 @@ def do_heatmap(tsvgz_flpth, png_flpth, html_flpth, cluster=True, png_from='plotl
     fig.update_layout(
         height=1000,
         width=1500,
-        title_text=os.path.basename(tsvgz_flpth)[:-3] + '<br>shape=' + str(df.shape),
+        title_text=os.path.basename(tsv_flpth) + '<br>shape=' + str(df.shape),
         title_x=0.5,
-        xaxis_title=HTMLReportWriter.tsvgzFlpth2axisLabels.get(tsvgz_flpth, ('no axis label', 'no axis label'))[1],
-        yaxis_title=HTMLReportWriter.tsvgzFlpth2axisLabels.get(tsvgz_flpth, ('no axis label', 'no axis label'))[0],
+        xaxis_title=var.tsvTsvgzFlnm2AxisLabels.get(tsv_flnm, (('no axis labels for this flnm',)*2))[1],
+        yaxis_title=var.tsvTsvgzFlnm2AxisLabels.get(tsv_flnm, (('no axis labels for this flnm',)*2))[0],
         xaxis_tickangle=45,
     )
 
@@ -108,70 +106,41 @@ def do_heatmap(tsvgz_flpth, png_flpth, html_flpth, cluster=True, png_from='plotl
     
     ###
     ###
-    if png_from == 'plotly': # orca server process reconnection error
-        logging.info('Writing plotly static heatmap at %s' % png_flpth)
-        t0 = time.time()
+    logging.info('Writing plotly static heatmap at %s' % png_flpth)
+    t0 = time.time()
 
-        fig.write_image(png_flpth, engine='kaleido')
-        
-        t_write_image = time.time() - t0
-
-        dprint('t_write_image', run=locals())
+    fig.write_image(png_flpth, engine='kaleido')
     
-    ###
-    ###
-    if png_from == 'sns':
+    t_write_image = time.time() - t0
 
-        logging.info('Generating sns static heatmap at %s' % png_flpth)
+    dprint('t_write_image', run=locals())
+    
 
-        t0 = time.time()
-        ax = sns.heatmap(df)
-        t_sns_heatmap = time.time() - t0
-
-        dprint('t_sns_heatmap', run=locals())
-
-        plt.setp(ax.get_xticklabels(), rotation=30, ha="right", rotation_mode="anchor")
-        fig = ax.get_figure()
-        fig.set_size_inches(20, 10)
-        
-        logging.info('Writing heatmap at %s' % png_flpth)
-
-        t0 = time.time()
-        fig.savefig(png_flpth)
-        t_savefig = time.time() - t0
-
-        dprint('t_savefig', run=locals())
-
-        plt.clf() # clear figure
         
 
 ####################################################################################################
 ####################################################################################################
 class HTMLReportWriter:
 
-    def __init__(self, cmd_l, tsvgz_flpth_l, report_dir): 
+    def __init__(self, cmd_l, tsv_flpth_l, report_dir): 
         '''
         Input:
-        * cmd_l - list of shell commands
-        * tsvgz_flpth_l
-        * report_dir - report directory tree will be built here. 
-                       `report_dir` will be created if it does not already exist
+        * cmd_l - list of app CLI commands
+        * tsv_flpth_l
+        * report_dir - not by app-global for some reason
         '''
         self.replacement_d = {}
 
         #
-        self.tsvgz_flpth_l = tsvgz_flpth_l
+        self.tsv_flpth_l = tsv_flpth_l
         self.cmd_l = cmd_l
-        self.report_dir = report_dir
 
         #
         if not os.path.exists(report_dir):
             os.mkdir(report_dir)
 
-        # dict from TSVGZ absolute filepaths to their axis labels 
-        self.__class__.tsvgzFlpth2axisLabels = {
-            os.path.join(var.out_dir, k): v for k, v in var.tsvgzRelFlpth2axisLabels.items()
-        }
+        self.report_dir = report_dir
+
 
     def _compile_cmd(self):
         
@@ -184,24 +153,27 @@ class HTMLReportWriter:
 
 
     def _compile_figures(self):
+
+        logging.info('Compiling all report figures')
+
         #
         self.fig_dir = os.path.join(self.report_dir, 'fig')
         os.mkdir(self.fig_dir)
 
         #
-        png_flpth_l = [os.path.join(self.fig_dir, os.path.basename(tsvgz_flpth)[:-7] + '.png') 
-            for tsvgz_flpth in self.tsvgz_flpth_l]
-        html_flpth_l = [os.path.join(self.report_dir, os.path.basename(tsvgz_flpth)[:-7] + '.html') 
-            for tsvgz_flpth in self.tsvgz_flpth_l]
+        png_flpth_l = [os.path.join(self.fig_dir, os.path.basename(tsv_flpth)[:-4] + '.png') 
+            for tsv_flpth in self.tsv_flpth_l]
+        html_flpth_l = [os.path.join(self.report_dir, os.path.basename(tsv_flpth)[:-4] + '.html') 
+            for tsv_flpth in self.tsv_flpth_l]
         
-        for flpth_tup in zip(self.tsvgz_flpth_l, png_flpth_l, html_flpth_l):
+        for flpth_tup in zip(self.tsv_flpth_l, png_flpth_l, html_flpth_l):
             try:
                 do_heatmap(*flpth_tup)
             except Exception as e:
                 traceback.print_exc()
                 logging.info(
-                    'Error occurred when generating heatmap for `%s`.\n'
-                    'Error is: `%s`\n' 
+                    'Error occurred when generating heatmap for `%s`. '
+                    'Error is:\n`%s`\n' 
                     'Time from last checkpoint is %.2fs\n'
                     'Aborting heatmapping' 
                     % (flpth_tup[0], traceback.format_exc(), time.time() - t0)
@@ -215,7 +187,6 @@ class HTMLReportWriter:
                     % os.path.basename(flpth_tup[0])
                 )
                 return
-
 
         def get_relative_fig_path(flpth):
             '''fig path relative to report.html'''

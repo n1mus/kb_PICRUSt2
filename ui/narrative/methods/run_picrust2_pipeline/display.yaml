@@ -29,11 +29,28 @@ parameters :
             AmpliconMatrix
         short-hint : |
             Input object of type <code>AmpliconMatrix</code>
+    create_amplicon_fps:
+        ui-name: |
+            Create amplicon FunctionalProfiles
+        short-hint: |
+            Create amplicon FunctionalProfiles
+    create_sample_fps:
+        ui-name: |
+            Create sample FunctionalProfiles
+        short-hint: |
+            Create sample FunctionalProfiles
     output_name:
         ui-name: |
             Updated AmpliconMatrix name
         short-hint: |
             (Optional) If input AmpliconMatrix has a row AttributeMapping, both will be updated. Default output AmpliconMatrix name is same name, which will save over input object
+
+parameter-groups:
+    fp_options:
+        ui-name: |
+            FunctionalProfile options
+        short-hint: |
+            FunctionalProfile options
 
 description : |
 
@@ -48,25 +65,34 @@ description : |
     </p>
 
     <p>
-    Thanks to Pamela Weisenhorn for guiding comments and designing behavior.
+    For the heatmaps, EC_metagenome_out/pred_metagenome_unstrat.tsv and 
+    KO_metagenome_out/pred_metagenome_unstrat.tsv are renamed to EC_pred_metagenome_unstrat.tsv and
+    KO_pred_metagenome_unstrat.tsv
+    </p>
+
+    <p>
+    Thanks to Pamela Weisenhorn for helpful comments and designing behavior.
     </p>
 
 
-publications: 
+publications: # Is it weird/shady that I got all these and citations from the PICRUSt2 paper?
 
     -
+        # PICRUSt2
         display-text: |
             Douglas, G.M., Maffei, V.J., Zaneveld, J.R. et al. PICRUSt2 for prediction of metagenome functions. Nat Biotechnol 38, 685–688 (2020), https://doi.org/10.1038/s41587-020-0548-6 
         link: |
             https://doi.org/10.1038/s41587-020-0548-6
 
     -
+        # EPA-ng
         display-text: |
             Pierre Barbera, Alexey M Kozlov, Lucas Czech, Benoit Morel, Diego Darriba, Tomáš Flouri, Alexandros Stamatakis, EPA-ng: Massively Parallel Evolutionary Placement of Genetic Sequences, Systematic Biology, Volume 68, Issue 2, March 2019, Pages 365–369, https://doi.org/10.1093/sysbio/syy054
         link: |
             https://doi.org/10.1093/sysbio/syy054
 
     -
+        # GAPPA
         display-text: |
             Lucas Czech, Pierre Barbera, Alexandros Stamatakis, Genesis and Gappa: processing, analyzing and visualizing phylogenetic (placement) data, Bioinformatics, https://doi.org/10.1093/bioinformatics/btaa070
         link: | 
@@ -80,26 +106,32 @@ publications:
             https://doi.org/10.1093/bioinformatics/btx701
 
     -
+        # HMMER
         display-text: |
             HMMER
-
+        link: |
+            http://www.hmmer.org/
 
     -
+        # IMG
         display-text: |
             Victor M. Markowitz, I-Min A. Chen, Krishna Palaniappan, Ken Chu, Ernest Szeto, Yuri Grechkin, Anna Ratner, Biju Jacob, Jinghua Huang, Peter Williams, Marcel Huntemann, Iain Anderson, Konstantinos Mavromatis, Natalia N. Ivanova, Nikos C. Kyrpides, IMG: the integrated microbial genomes database and comparative analysis system, Nucleic Acids Research, Volume 40, Issue D1, 1 January 2012, Pages D115–D122, https://doi.org/10.1093/nar/gkr1044
         link: |
             https://doi.org/10.1093/nar/gkr1044
     -
+        # KO
         display-text: |
             Minoru Kanehisa, Susumu Goto, Yoko Sato, Miho Furumichi, Mao Tanabe, KEGG for integration and interpretation of large-scale molecular data sets, Nucleic Acids Research, Volume 40, Issue D1, 1 January 2012, Pages D109–D114, https://doi.org/10.1093/nar/gkr988
         link: |
             https://doi.org/10.1093/nar/gkr988
 
     -
+        # EC
         display-text: |
             Enzyme Commission (EC)
 
     -
+        # MetaCyc
         display-text: |
             Ron Caspi, Richard Billington, Luciana Ferrer, Hartmut Foerster, Carol A. Fulcher, Ingrid M. Keseler, Anamika Kothari, Markus Krummenacker, Mario Latendresse, Lukas A. Mueller, Quang Ong, Suzanne Paley, Pallavi Subhraveti, Daniel S. Weaver, Peter D. Karp, The MetaCyc database of metabolic pathways and enzymes and the BioCyc collection of pathway/genome databases, Nucleic Acids Research, Volume 44, Issue D1, 4 January 2016, Pages D471–D480, https://doi.org/10.1093/nar/gkv1164
         link: |

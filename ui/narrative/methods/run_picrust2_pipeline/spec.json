@@ -9,6 +9,19 @@
         "input": null,
         "output": "no-display"
     },
+    "parameter-groups": [
+        {
+            "id": "fp_options",
+            "parameters": [
+                "create_amplicon_fps",
+                "create_sample_fps"
+            ],
+            "optional": false,
+            "advanced": true,
+            "allow_multiple": false,
+            "with_border": true
+        }
+    ],
     "parameters": [ 
         {
             "id": "amplicon_matrix_upa",
@@ -21,6 +34,28 @@
                 "valid_ws_types": ["KBaseMatrices.AmpliconMatrix"]
             }
         },{
+            "id": "create_amplicon_fps",
+            "optional": true,
+            "advanced": true,
+            "allow_multiple": false,
+            "default_values": [true],
+            "field_type": "checkbox",
+            "checkbox_options": {
+                "checked_value": true,
+                "unchecked_value": false
+            }
+        },{
+            "id": "create_sample_fps",
+            "optional": true,
+            "advanced": true,
+            "allow_multiple": false,
+            "default_values": [true],
+            "field_type": "checkbox",
+            "checkbox_options": {
+                "checked_value": true,
+                "unchecked_value": false
+            }
+         },{
             "id": "output_name",
             "optional": true,
             "advanced": true,
@@ -49,6 +84,9 @@
                     "input_parameter": "amplicon_matrix_upa",
                     "target_property": "amplicon_matrix_upa",
                     "target_type_transform": "resolved-ref"
+                },{
+                    "input_parameter": "fp_options",
+                    "target_property": "fp_options"
                 },{
                     "input_parameter": "output_name",
                     "target_property": "output_name"

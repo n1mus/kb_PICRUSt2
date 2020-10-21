@@ -11,71 +11,10 @@ from .dprint import dprint
 from .config import var
 
 
-
-
 pd.set_option('display.max_rows', 100)
 pd.set_option('display.max_columns', 50)
 pd.set_option('display.width', 1000)
 pd.set_option('display.max_colwidth', 20)
-
-
-def write_json(obj, flnm, AmpliconSet=False):
-    '''
-    For debugging/testing
-    '''
-    if 'run_dir' not in var:
-        import uuid
-        var.run_dir = os.path.join('/kb/module/work/tmp', str(uuid.uuid4()))
-        os.mkdir(var.run_dir)
-
-    flpth = os.path.join(var.run_dir, flnm)
-    with open(flpth, 'w') as f:
-        json.dump(obj, f, indent=3)
-
-    if AmpliconSet == True:
-        dprint('touch %s' % os.path.join(var.run_dir, '#' + obj['data'][0]['info'][1]), run='cli') # annotate run_dir with name
-
-
-
-
-####################################################################################################
-####################################################################################################
-####################################################################################################
-
-class AmpliconSet:
-    '''
-    Instances need to know `var.return_dir` to fully function
-    '''
-
-    def __init__(self, upa):
-        self.upa = upa
-        self._get_obj()
-
-
-    def _get_obj(self):
-        logging.info('Loading AmpliconSet object')
-
-        obj = var.dfu.get_objects({
-            'object_refs': [self.upa]
-            })
-
-        if var.debug: write_json(obj, 'get_objects_AmpliconSet.json', AmpliconSet=True)
-        
-        self.name = obj['data'][0]['info'][1]
-        self.obj = obj['data'][0]['data']
-        self.amp_mat_upa = self.obj['amplicon_matrix_ref']
-
-
-    def to_fasta(self, flpth):
-        logging.info('Writing fasta to %s' % flpth)
-
-        amplicons_d = self.obj['amplicons']
-        
-        with open(flpth, 'w') as fp:
-            for id, amplicon_d in amplicons_d.items():
-                fp.write('>' + id + '\n')
-                fp.write(amplicon_d['consensus_sequence'] + '\n')
-
 
 
 
@@ -98,11 +37,12 @@ class AmpliconMatrix:
             'object_refs': [self.upa]
             })
 
-        if var.debug: write_json(obj, 'get_objects_AmpliconMatrix.json')
-
         self.name = obj['data'][0]['info'][1]
         self.row_attrmap_upa = obj['data'][0]['data'].get('row_attributemapping_ref')
         self.obj = obj['data'][0]['data']
+        
+        if 'run_dir' in var: # comment directory with AmpMat name. optional since unit tests may not have run_dir
+            dprint('touch %s' % os.path.join(var.run_dir, '#' + self.name), run='cli')
 
 
     def to_seq_abundance_table(self, flpth):
@@ -124,19 +64,15 @@ class AmpliconMatrix:
         fetched_flpth = var.gapi.fetch_sequence(self.upa)
         shutil.copyfile(fetched_flpth, flpth)
 
-    def update_row_attributemapping_ref(self, row_attrmap_upa_new):
-        self.obj['row_attributemapping_ref'] = row_attrmap_upa_new
-
-
     def save(self, name=None):
         logging.info('Saving AmpliconMatrix')
 
         info = var.dfu.save_objects(
             {'id': var.params['workspace_id'],
              "objects": [{
-                 "type": "KBaseMatrices.AmpliconMatrix",
+                 "type": "KBaseMatrices.AmpliconMatrix", # TODO version
                  "data": self.obj,
-                 "name": name if name else self.name,
+                 "name": name if name is not None else self.name,
                  "extra_provenance_input_refs": [self.upa]
              }]})[0]
 
@@ -152,18 +88,17 @@ class AmpliconMatrix:
 
 class AttributeMapping:
 
-    def __init__(self, upa):
+    def __init__(self, upa, amp_mat):
         self.upa = upa
+        self.amp_mat = amp_mat
         self._get_obj()
 
     def _get_obj(self):
         logging.info('Loading AttributeMapping object')
 
         obj = var.dfu.get_objects({
-            'object_refs': [self.upa]
+            'object_refs': ['%s;%s' %(self.amp_mat.upa, self.upa)]
             })
-
-        if var.debug: write_json(obj, 'get_objects_AttributeMapping.json')
 
         self.name = obj['data'][0]['info'][1]
         self.obj = obj['data'][0]['data']
@@ -220,7 +155,7 @@ class AttributeMapping:
         info = var.dfu.save_objects(
             {'id': var.params['workspace_id'],
              "objects": [{
-                 "type": "KBaseExperiments.AttributeMapping",
+                 "type": "KBaseExperiments.AttributeMapping", # TODO version
                  "data": self.obj,
                  "name": self.name,
                  "extra_provenance_input_refs": [self.upa]
