@@ -11,6 +11,7 @@ import pandas as pd
 import numpy as np
 import gzip
 import shutil
+import json
 
 from installed_clients.KBaseReportClient import KBaseReport
 from installed_clients.DataFileUtilClient import DataFileUtil
@@ -134,6 +135,9 @@ class OutfileWrangler:
         PICRUSt2 drops ids/samples that are all 0s
         Restore them in original order here
         '''
+        logging.info('0-padding TSV %s' % tsv_flpth)
+        t0 = time.time()
+
         index = var.tsvFlnm2Index[os.path.basename(tsv_flpth)]
         df_partial = pd.read_csv(tsv_flpth, sep='\t', index_col=0)
 
@@ -162,8 +166,23 @@ class OutfileWrangler:
             df_full = df_full.T
 
         df_full.to_csv(tsv_flpth, sep='\t')
-        
 
+        logging.info('0-padding TSV %s took %.2fs' %(tsv_flpth, (time.time()-t0)))
+
+        
+####################################################################################################
+####################################################################################################
+
+def gunzip_to(read, write):
+    '''
+    Gunzip from `read` to `write`
+    '''
+    with gzip.open(read, 'rb') as fh_read:
+        with open(write, 'wb') as fh_write:
+            shutil.copyfileobj(fh_read, fh_write)
+
+####################################################################################################
+####################################################################################################
 #END_HEADER
 
 
@@ -217,6 +236,9 @@ class kb_PICRUSt2:
         #BEGIN run_picrust2_pipeline
 ####################################################################################################
 ####################################################################################################
+####################################################################################################
+####################################################################################################
+####################################################################################################
 
         #
         ##
@@ -224,7 +246,7 @@ class kb_PICRUSt2:
         ####
         #####
 
-        logging.info('params: %s' % str(params))
+        logging.info('BEGINNING KB_PICRUST2. params: %s' % str(params))
 
         params = Params(params)
 
@@ -251,6 +273,10 @@ class kb_PICRUSt2:
         )
 
         os.mkdir(var.return_dir) # for return input/output/logs etc.
+
+        if var.debug:
+            with open(os.path.join(var.run_dir, '#params'), 'w') as fh:
+                json.dump(params.params, fh)
     
         # TODO document `run_dir` structure
 
@@ -387,19 +413,13 @@ class kb_PICRUSt2:
         ####
         #####
 
-        logging.info('Preparing TSV directory')
 
         tsv_dir = os.path.join(var.shared_folder, 'kbp2_tsv_dir_' + str(uuid.uuid4()))
         os.mkdir(tsv_dir)
 
-        def gunzip_to(read, write):
-            '''
-            Gunzip from `read` to `write`
-            '''
-            with gzip.open(read, 'rb') as fh_read:
-                with open(write, 'wb') as fh_write:
-                    shutil.copyfileobj(fh_read, fh_write)
+        logging.info('Preparing TSV directory %s' % tsv_dir)
 
+        dprint('touch %s' % os.path.join(tsv_dir, '#' + amp_mat.name))
         for tsvgz_relflpth, tsv_flnm in var.tsvgzRelFlpth2TsvFlnm.items():
             gunzip_to(
                 os.path.join(var.out_dir, tsvgz_relflpth),
@@ -416,13 +436,10 @@ class kb_PICRUSt2:
 
         tsv_flpth_l = [os.path.join(tsv_dir, tsv_flnm) for tsv_flnm in var.tsvgzRelFlpth2TsvFlnm.values()]
 
-        # Pad 0 ids/samples
-        for tsv_flpth in tsv_flpth_l:
-            OutfileWrangler.pad_0_vecs(tsv_flpth, amp_mat)
 
 
-        ## Community FPs ## TODO test the FP options
 
+        ## Community FPs
         if params.getd('create_sample_fps') is True and 'sample_set_ref' not in amp_mat.obj:
             msg = (
                 'Sorry, input AmpliconMatrix %s does not have a SampleSet reference '
@@ -434,6 +451,9 @@ class kb_PICRUSt2:
             var.warnings.append(msg)
         
         elif params.getd('create_sample_fps') is True and 'sample_set_ref' in amp_mat.obj:
+            # Pad 0 samples
+            for tsv_flpth in tsv_flpth_l[:3]:
+                OutfileWrangler.pad_0_vecs(tsv_flpth, amp_mat)
 
             var.objects_created.append(dict(
                 ref=var.fpu.import_func_profile(dict(
@@ -481,8 +501,11 @@ class kb_PICRUSt2:
             ))
 
 
-        ## Amplicon FPs ##
+        ## Organism FPs ##
         if params.getd('create_amplicon_fps') is True:
+            # Pad 0 samples
+            for tsv_flpth in tsv_flpth_l[3:]:
+                OutfileWrangler.pad_0_vecs(tsv_flpth, amp_mat)
 
             var.objects_created.append(dict(
                 ref=var.fpu.import_func_profile(dict(
@@ -529,29 +552,33 @@ class kb_PICRUSt2:
                 description='Amplicon vs. KO',
             ))
 
-
         #
         ##
-        ### html report w heatmap(s)
+        ### prepare TSV dir again (don't need 0-padded)
         ####
         #####
 
-        logging.info('Report business')
 
+        tsv_dir = os.path.join(var.shared_folder, 'kbp2_tsv_dir_' + str(uuid.uuid4()))
+        os.mkdir(tsv_dir)
+
+        logging.info('Preparing TSV directory %s' % tsv_dir)
+
+        dprint('touch %s' % os.path.join(tsv_dir, '#' + amp_mat.name))
+        for tsvgz_relflpth, tsv_flnm in var.tsvgzRelFlpth2TsvFlnm.items():
+            gunzip_to(
+                os.path.join(var.out_dir, tsvgz_relflpth),
+                os.path.join(tsv_dir, tsv_flnm)
+            )
+
+        #
         ##
-        ## PICRUSt2 output tsvgzs
+        ### html report w/ heatmaps
+        ####
+        #####
 
-        '''
-        TSVs are:
+        logging.info('Beginning report business')
 
-        'pathways_out/path_abun_unstrat.tsv', #* [most important] 1.2M
-        'pathways_out/path_abun_unstrat_per_seq.tsv',
-        'pathways_out/path_abun_predictions.tsv',
-        'EC_predicted.tsv', #* [nice-to-have] 100M TODO
-        'KO_predicted.tsv', #* [nice-to-have] 358M TODO
-        'EC_metagenome/pred_metagenome_unstrat.tsv',
-        'KO_metagenome/pred_metagenome_unstrat.tsv',
-        '''
 
         ##
         ## report

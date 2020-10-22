@@ -50,26 +50,17 @@ def reset_var():
 
 
 
+'''
+TSVs are:
+
+'pathways_out/path_abun_unstrat.tsv', #* [most important] 1.2M
+'pathways_out/path_abun_unstrat_per_seq.tsv',
+'pathways_out/path_abun_predictions.tsv',
+'EC_predicted.tsv', #* [nice-to-have] 100M TODO
+'KO_predicted.tsv', #* [nice-to-have] 358M TODO
+'EC_metagenome/pred_metagenome_unstrat.tsv',
+'KO_metagenome/pred_metagenome_unstrat.tsv',
+'''
 
 
 
-"""
-    'tsvgz_relflpth_l': [ # TSV GZs relative to var.out_dir, where PICRUSt2 outputs files
-        'pathways_out/path_abun_unstrat.tsv.gz', # func x sample
-        'EC_metagenome_out/pred_metagenome_unstrat.tsv.gz', # func x sample
-        'KO_metagenome_out/pred_metagenome_unstrat.tsv.gz', # func x sample
-        'pathways_out/path_abun_predictions.tsv.gz', # id x func
-        'EC_predicted.tsv.gz', # id x func
-        'KO_predicted.tsv.gz', # id x func
-    ],
-
-    'tsvgzRelFlpth2axisLabels': { 
-            'pathways_out/path_abun_unstrat.tsv.gz': ('MetaCyc pathway', 'sample'), # func x sample
-            'EC_metagenome_out/pred_metagenome_unstrat.tsv.gz': ('EC', 'sample'), # func x sample
-            'KO_metagenome_out/pred_metagenome_unstrat.tsv.gz': ('KO', 'sample'), # func x sample
-            'pathways_out/path_abun_predictions.tsv.gz': ('amplicon ID', 'MetaCyc pathway'), # id x func
-            'EC_predicted.tsv.gz': ('amplicon ID', 'EC'), # id x func
-            'KO_predicted.tsv.gz': ('amplicon ID', 'KO'), # id x func
-    },
-
-"""

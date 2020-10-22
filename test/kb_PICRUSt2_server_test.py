@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 import os
 import time
+import logging
 import unittest
 from unittest.mock import patch
 from configparser import ConfigParser
@@ -9,6 +10,7 @@ import pandas as pd
 import numpy as np
 import itertools
 import shutil
+import tracemalloc
 
 from kb_PICRUSt2.kb_PICRUSt2Server import MethodContext
 from kb_PICRUSt2.authclient import KBaseAuth as _KBaseAuth
@@ -23,14 +25,14 @@ from kb_PICRUSt2.util.error import *
 from util.mock import *
 from util.upa import *
 
-
+#tracemalloc.start(25)
 
 ######################################
 ######################################
 ######### TOGGLE PATCH ###############
 ######################################
 ###################################### 
-do_patch = True 
+do_patch = False 
 
 if do_patch:
     patch_ = patch
@@ -60,6 +62,7 @@ class kb_PICRUSt2Test(unittest.TestCase):
         '''
         Test `run_check` which runs PICRUSt2 executable
         ''' # TODO test return value of commands chained with &&
+        logging.info('Testing with test_run_check')
 
         with self.assertRaises(NonZeroReturnException) as cm:
             run_check('set -o pipefail && ;s |& tee tmp')
@@ -82,6 +85,8 @@ class kb_PICRUSt2Test(unittest.TestCase):
     def test_OutfileWrangler(self):
         '''
         '''
+        logging.info('Testing with test_OutfileWrangler')
+
         run_dir = os.path.join('/kb/module/work/tmp', 'test_OutfileWranger_' + str(uuid.uuid4()))
         os.mkdir(run_dir)
 
@@ -151,6 +156,8 @@ class kb_PICRUSt2Test(unittest.TestCase):
         '''
         Combine AmpliconSet and AmpliconMatrix since they mostly write input files
         '''
+        logging.info('Testing with test_AmpliconSet_and_AmpliconMatrix')
+
         # set up `run_dir`
         var.run_dir = os.path.join(self.shared_folder, 'test_AmpliconSet_and_AmpliconMatrix_' + str(uuid.uuid4()))
         os.mkdir(var.run_dir)
@@ -188,6 +195,8 @@ class kb_PICRUSt2Test(unittest.TestCase):
         '''
         Mostly writing attributes
         '''
+        logging.info('Testing with test_AttributeMapping')
+
         amp_mat = AmpliconMatrix(dummy_10by8_AmpMat)
         attr_map = AttributeMapping(dummy_10by8_AttrMap, amp_mat)
 
@@ -253,6 +262,8 @@ class kb_PICRUSt2Test(unittest.TestCase):
         '''
         Test largest possible heatmap
         '''
+        logging.info('Testing with test_large_heatmap')
+
         ##
         def write_random_tsv(flpth, dim, max):
             values = (np.random.random((dim, dim)) * max).round(decimals=2)
@@ -274,7 +285,7 @@ class kb_PICRUSt2Test(unittest.TestCase):
         ###
         ### heatmap random large
         
-        report_dir = os.path.join(run_dir, 'report_random_3k')
+        report_dir = os.path.join(run_dir, 'report_randomLargeHeatmap')
         fig_dir = os.path.join(report_dir, 'fig')
         os.makedirs(fig_dir)
 
@@ -282,9 +293,52 @@ class kb_PICRUSt2Test(unittest.TestCase):
         png_flpth = os.path.join(fig_dir, 'heatmap_random.png')
         html_flpth = os.path.join(report_dir, 'heatmap_random.html')
 
-        write_random_tsv(tsvgz_flpth, dim=40000, max=1500)
+        write_random_tsv(tsvgz_flpth, dim=7000, max=1500)
 
         do_heatmap(tsvgz_flpth, png_flpth, html_flpth)
+
+
+    ####################
+    ####################
+    @patch.dict('kb_PICRUSt2.util.report.var', values={'warnings': []})
+    def test_small_heatmap(self):
+        '''
+        '''
+        logging.info('Testing with test_small_heatmap')
+
+        ##
+        def write_random_tsv(flpth, dim, max):
+            values = (np.random.random((dim, dim)) * max).round(decimals=2)
+            df = pd.DataFrame(
+                    values, 
+                    index=['dummy_ind_%d' % i for i in range(dim)], 
+                    columns=['dummy_col_%d' % i for i in range(dim)]
+            )
+            df.to_csv(flpth, sep='\t', compression='gzip')
+
+        ##
+        def has_n_htmls(dir, n):
+            return len([flnm for flnm in os.listdir(report_dir) if flnm.endswith('.html')]) == n
+    
+        ## make `run_dir`
+        run_dir = os.path.join(self.shared_folder, 'test_report_' + str(uuid.uuid4()))
+        os.mkdir(run_dir)
+
+        ###
+        ### heatmap random small
+        
+        report_dir = os.path.join(run_dir, 'report_randomSmallHeatmap')
+        fig_dir = os.path.join(report_dir, 'fig')
+        os.makedirs(fig_dir)
+
+        tsvgz_flpth = os.path.join(report_dir, 'random.tsv.gz')
+        png_flpth = os.path.join(fig_dir, 'heatmap_random.png')
+        html_flpth = os.path.join(report_dir, 'heatmap_random.html')
+
+        write_random_tsv(tsvgz_flpth, dim=500, max=1500)
+
+        do_heatmap(tsvgz_flpth, png_flpth, html_flpth)
+
 
 
 
@@ -296,6 +350,9 @@ class kb_PICRUSt2Test(unittest.TestCase):
         Should make 6 `report_dir_*` subdirectories, 
         Check them (`cd test_local/workdir/tmp && firefox test_report_*/report_dir_*/*.html &)
         '''
+
+        logging.info('Testing with test_report')
+
 
         ##
         def write_random_tsv(flpth, dim, max):
@@ -603,6 +660,41 @@ class kb_PICRUSt2Test(unittest.TestCase):
 #!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 #!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
+    """
+    #####
+    #####
+    def setUp(self):
+        self.snapshot1 = tracemalloc.take_snapshot()
+        top_stats = self.snapshot1.statistics('lineno')
+
+        print("[ Top 10 ]")
+        for stat in top_stats[:10]:
+            print(stat)
+
+    #####
+    #####
+    def tearDown(self):
+        snapshot2 = tracemalloc.take_snapshot()
+
+        ##
+        top_stats = snapshot2.compare_to(self.snapshot1, 'lineno')
+
+        print("[ Top 10 differences ]")
+        for stat in top_stats[:10]:
+            print(stat)
+
+        ##
+        top_stats = snapshot2.statistics('traceback')
+
+        # pick the biggest memory block
+        stat = top_stats[0]
+        print("%s memory blocks: %.1f KiB" % (stat.count, stat.size / 1024))
+        for line in stat.traceback.format():
+            print(line)
+    """
+
+    #####
+    #####
     @classmethod
     def setUpClass(cls):
         token = os.environ.get('KB_AUTH_TOKEN', None)
@@ -677,17 +769,23 @@ integration_tests = [
 ]
 unit_tests = [
     'test_run_check', 'test_OutfileWrangler', 
-    'test_AmpliconSet_and_AmpliconMatrix', 'test_AttributeMapping'
-    'test_report', 'test_large_heatmap'
+    'test_AmpliconSet_and_AmpliconMatrix', 'test_AttributeMapping',
+    'test_report', 'test_large_heatmap', 'test_small_heatmap',
+]
+large_tests = [
+    'test_large_dataset', 'test_large_heatmap',
 ]
 run_tests = [
+    'test_FP_options_noSampleSet',
+]
+norun_tests = [
     'test_large_dataset',
 ] 
 
 for key, value in kb_PICRUSt2Test.__dict__.copy().items():
     if key.startswith('test') and callable(value):
         if key not in run_tests:
-            #delattr(kb_PICRUSt2Test, key)
+            delattr(kb_PICRUSt2Test, key)
             pass
 
 

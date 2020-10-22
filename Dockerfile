@@ -32,6 +32,8 @@ RUN apt-get install --yes vim
 
 RUN pip install -U kaleido
 
+ENV PYTHONTRACEMALLOC=1
+
 # -----------------------------------------
 
 COPY ./ /kb/module

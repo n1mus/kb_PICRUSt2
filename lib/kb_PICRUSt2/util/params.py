@@ -33,7 +33,7 @@ class Params:
 
     def __init__(self, params):
 
-        ## Flatten right away##
+        ## Flatten right away ##
         params = flatten(params)
 
         ## Validation
@@ -41,11 +41,17 @@ class Params:
 
         
         ## Custom transformations to internal state ##
+        ## This is kind of silly ##
+        ## But the code is written before I figure out how the narrative passes things ##
 
-        if 'output_name' in params and params['output_name'] == '':
-            params['output_name'] = None # treat empty string as null case
-                                         # since ui only returns strings for string type
-        
+        if params.get('output_name') == '':
+            params['output_name'] = None # treat empty string as null case since ui only returns strings for string type
+        if type(params.get('create_amplicon_fps')) is int:
+            params['create_amplicon_fps'] = True if params['create_amplicon_fps'] == 1 else False
+        if type(params.get('create_sample_fps')) is int:
+            params['create_sample_fps'] = True if params['create_sample_fps'] == 1 else False
+       
+        ##
         self.params = params
 
 

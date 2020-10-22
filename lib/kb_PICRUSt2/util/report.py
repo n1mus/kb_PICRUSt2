@@ -87,19 +87,26 @@ def do_heatmap(tsv_flpth, png_flpth, html_flpth): # TODO log coloring?
     dprint('t_go_heatmap', run=locals())
 
     fig.update_layout(
-        height=1000,
-        width=1500,
+        #height=1000,
+        #width=1500,
         title_text=os.path.basename(tsv_flpth) + '<br>shape=' + str(df.shape),
         title_x=0.5,
         xaxis_title=var.tsvTsvgzFlnm2AxisLabels.get(tsv_flnm, (('no axis labels for this flnm',)*2))[1],
         yaxis_title=var.tsvTsvgzFlnm2AxisLabels.get(tsv_flnm, (('no axis labels for this flnm',)*2))[0],
         xaxis_tickangle=45,
+        #yaxis_tickangle=45,
     )
 
+    ###
+    ###
     logging.info('Writing plotly interactive heatmap at %s' % html_flpth)
 
     t0 = time.time()
-    fig.write_html(html_flpth)
+    fig.write_html(
+        html_flpth,
+        default_height='100%',
+        default_width='100%',
+    )
     t_write_html = time.time() - t0
 
     dprint('t_write_html', run=locals())
@@ -109,7 +116,12 @@ def do_heatmap(tsv_flpth, png_flpth, html_flpth): # TODO log coloring?
     logging.info('Writing plotly static heatmap at %s' % png_flpth)
     t0 = time.time()
 
-    fig.write_image(png_flpth, engine='kaleido')
+    fig.write_image(
+        png_flpth, 
+        height=700,
+        width=1100,
+        engine='kaleido',
+    )
     
     t_write_image = time.time() - t0
 
