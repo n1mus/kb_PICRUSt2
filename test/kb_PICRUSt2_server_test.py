@@ -32,7 +32,7 @@ from util.upa import *
 ######### TOGGLE PATCH ###############
 ######################################
 ###################################### 
-do_patch = False 
+do_patch =  True
 
 if do_patch:
     patch_ = patch
@@ -152,17 +152,16 @@ class kb_PICRUSt2Test(unittest.TestCase):
     ####################
     ####################
     @patch.dict('kb_PICRUSt2.util.kbase_obj.var', values={'dfu': get_mock_dfu('dummy_10by8')})
-    def test_AmpliconSet_and_AmpliconMatrix(self):
+    def test_AmpliconMatrix(self):
         '''
         Combine AmpliconSet and AmpliconMatrix since they mostly write input files
         '''
-        logging.info('Testing with test_AmpliconSet_and_AmpliconMatrix')
+        logging.info('Testing with test_AmpliconMatrix')
 
         # set up `run_dir`
-        var.run_dir = os.path.join(self.shared_folder, 'test_AmpliconSet_and_AmpliconMatrix_' + str(uuid.uuid4()))
+        var.run_dir = os.path.join(self.shared_folder, 'test_AmpliconMatrix_' + str(uuid.uuid4()))
         os.mkdir(var.run_dir)
 
-        #amp_set = AmpliconSet(dummy_10by8)
         amp_mat = AmpliconMatrix(dummy_10by8_AmpMat)
 
         # write
@@ -170,17 +169,12 @@ class kb_PICRUSt2Test(unittest.TestCase):
         seq_flpth = os.path.join(var.run_dir, 'study_seqs.fna')
         seq_abundance_table_flpth = os.path.join(var.run_dir, 'study_seqs.tsv')
 
-        #amp_set.to_fasta(seq_flpth)
         amp_mat.to_seq_abundance_table(seq_abundance_table_flpth)
 
         # compare
         
         seq_ref_flpth = '/kb/module/test/data/by_dataset_input/dummy_10by8/return/study_seqs.fna'
         seq_abundance_table_ref_flpth = '/kb/module/test/data/by_dataset_input/dummy_10by8/return/study_seqs.tsv'
-        
-        #with open(seq_flpth) as f1:
-        #    with open(seq_ref_flpth) as f2:
-        #        self.assertTrue(f1.read() == f2.read())
 
         with open(seq_abundance_table_flpth) as f1:
             with open(seq_abundance_table_ref_flpth) as f2:
@@ -195,6 +189,8 @@ class kb_PICRUSt2Test(unittest.TestCase):
         '''
         Mostly writing attributes
         '''
+        # TODO test with non-identical row_mapping
+
         logging.info('Testing with test_AttributeMapping')
 
         amp_mat = AmpliconMatrix(dummy_10by8_AmpMat)
@@ -206,7 +202,7 @@ class kb_PICRUSt2Test(unittest.TestCase):
         self.assertTrue(ind_0 == 2)
         self.assertTrue(len(var.warnings) == 0)
 
-        attr_map.update_attribute(ind_0, {
+        attr_map.map_update_attribute(ind_0, {
             "amplicon_id_0": "dummy0",
             "amplicon_id_1": "dummy0",
             "amplicon_id_2": "dummy0",
@@ -227,7 +223,7 @@ class kb_PICRUSt2Test(unittest.TestCase):
         self.assertTrue(ind_1 == 0)
         self.assertTrue(len(var.warnings) == 1)
 
-        attr_map.update_attribute(ind_1, {
+        attr_map.map_update_attribute(ind_1, {
             "amplicon_id_0": "dummy1",
             "amplicon_id_1": "dummy1",
             "amplicon_id_2": "dummy1",
@@ -296,49 +292,6 @@ class kb_PICRUSt2Test(unittest.TestCase):
         write_random_tsv(tsvgz_flpth, dim=7000, max=1500)
 
         do_heatmap(tsvgz_flpth, png_flpth, html_flpth)
-
-
-    ####################
-    ####################
-    @patch.dict('kb_PICRUSt2.util.report.var', values={'warnings': []})
-    def test_small_heatmap(self):
-        '''
-        '''
-        logging.info('Testing with test_small_heatmap')
-
-        ##
-        def write_random_tsv(flpth, dim, max):
-            values = (np.random.random((dim, dim)) * max).round(decimals=2)
-            df = pd.DataFrame(
-                    values, 
-                    index=['dummy_ind_%d' % i for i in range(dim)], 
-                    columns=['dummy_col_%d' % i for i in range(dim)]
-            )
-            df.to_csv(flpth, sep='\t', compression='gzip')
-
-        ##
-        def has_n_htmls(dir, n):
-            return len([flnm for flnm in os.listdir(report_dir) if flnm.endswith('.html')]) == n
-    
-        ## make `run_dir`
-        run_dir = os.path.join(self.shared_folder, 'test_report_' + str(uuid.uuid4()))
-        os.mkdir(run_dir)
-
-        ###
-        ### heatmap random small
-        
-        report_dir = os.path.join(run_dir, 'report_randomSmallHeatmap')
-        fig_dir = os.path.join(report_dir, 'fig')
-        os.makedirs(fig_dir)
-
-        tsvgz_flpth = os.path.join(report_dir, 'random.tsv.gz')
-        png_flpth = os.path.join(fig_dir, 'heatmap_random.png')
-        html_flpth = os.path.join(report_dir, 'heatmap_random.html')
-
-        write_random_tsv(tsvgz_flpth, dim=500, max=1500)
-
-        do_heatmap(tsvgz_flpth, png_flpth, html_flpth)
-
 
 
 
@@ -769,14 +722,14 @@ integration_tests = [
 ]
 unit_tests = [
     'test_run_check', 'test_OutfileWrangler', 
-    'test_AmpliconSet_and_AmpliconMatrix', 'test_AttributeMapping',
+    'test_AmpliconMatrix', 'test_AttributeMapping',
     'test_report', 'test_large_heatmap', 'test_small_heatmap',
 ]
 large_tests = [
     'test_large_dataset', 'test_large_heatmap',
 ]
 run_tests = [
-    'test_FP_options_noSampleSet',
+    'test_AttributeMapping',
 ]
 norun_tests = [
     'test_large_dataset',
@@ -785,7 +738,7 @@ norun_tests = [
 for key, value in kb_PICRUSt2Test.__dict__.copy().items():
     if key.startswith('test') and callable(value):
         if key not in run_tests:
-            delattr(kb_PICRUSt2Test, key)
+            #delattr(kb_PICRUSt2Test, key)
             pass
 
 

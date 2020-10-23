@@ -56,22 +56,32 @@ description : |
 
 
     <p>
-    If input AmpliconMatrix has a row AttributeMapping, 
-    this app generates a new row AttributeMapping updated with MetaCyc functions
-    and an updated AmpliconMatrix referencing the new row AttributeMapping.
-    Always generates three new community FunctionalProfiles and three new amplicon FunctionalProfiles;
+    If input <code>AmpliconMatrix</code> has a row <code>AttributeMapping</code>, 
+    this app generates a new row <code>AttributeMapping</code> updated with MetaCyc functions
+    and an <code>AmpliconMatrix</code> with an updated row <code>AttributeMapping</code> reference.
+    </p>
+
+    <p>
+    Can generate three new community <code>FunctionalProfile</code>s and three new organism <code>FunctionalProfile</code>s;
     three because one for each of PICRUSt2's predicted EC, KO, and MetaCyc functions. 
-    The FunctionalProfiles will reference the new AmpliconMatrix is one was created.
+    The <code>FunctionalProfile</code>s will reference the new <code>AmpliconMatrix</code> if one was created.
     </p>
 
     <p>
-    For the heatmaps, EC_metagenome_out/pred_metagenome_unstrat.tsv and 
-    KO_metagenome_out/pred_metagenome_unstrat.tsv are renamed to EC_pred_metagenome_unstrat.tsv and
-    KO_pred_metagenome_unstrat.tsv
+    For the heatmaps, <code>EC_metagenome_out/pred_metagenome_unstrat.tsv</code> and 
+    <code>KO_metagenome_out/pred_metagenome_unstrat.tsv</code> are renamed to <code>EC_pred_metagenome_unstrat.tsv</code> and
+    <code>KO_pred_metagenome_unstrat.tsv</code>, respectively
     </p>
 
     <p>
-    Thanks to Pamela Weisenhorn for helpful comments and designing behavior.
+    The heatmaps can be very large and sparse, which can make them uninformative and difficult to display.
+    A somewhat arbitrary filtering technique is adopted: 
+    the 2800 rows or columns with the largest sums are retained. 
+    2800 because 8M data points is a technical restraint.
+    </p>
+
+    <p>
+    Thanks to Pamela Weisenhorn for helpful comments and UI/behavior suggestions.
     </p>
 
 
@@ -137,7 +147,10 @@ publications: # Is it weird/shady that I got all these and citations from the PI
         link: |
             https://doi.org/10.1093/nar/gkv1164
 
-
+    -
+        # plotly
+        display-text: |
+            Plotly Technologies Inc. Collaborative data science. Montréal, QC, 2015. https://plot.ly.
 
 
 

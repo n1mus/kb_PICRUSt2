@@ -64,6 +64,42 @@ class AmpliconMatrix:
         fetched_flpth = var.gapi.fetch_sequence(self.upa)
         shutil.copyfile(fetched_flpth, flpth)
 
+
+    def _map_id2attr_ids(self, id2attr, axis='row'):
+        '''
+        Parameters
+        ----------
+        id2attr - AmpliconMatrix row_ids to attribute you want to give AttributeMapping
+
+
+        Behavior
+        --------
+        Swap out ids in id2attr so they end up mapping AttributeMapping ids to attributes
+        '''
+        if f'{axis}_attributemapping_ref' not in self.obj:
+            raise Exception(
+                'Trying to map AmpliconMatrix %s_ids to %s AttributeMapping ids '
+                "when AmpliconMatrix doesn't have %s AttributeMapping"
+                % (axis, axis, axis)
+            )
+        elif f'{axis}_mapping' not in self.obj:
+            msg = (
+                'Dude this object has a %s_attributemapping_ref '
+                'and needs a %s_mapping. Letting it slide for now.'
+                % (axis, axis)
+            )
+            logging.warning(msg)
+            var.warnings.append(msg)
+            return id2attr
+
+        id2attr = {
+            self.obj[f'{axis}_mapping'][id]: attr
+            for id, attr in id2attr.items()
+        }
+
+        return id2attr
+
+
     def save(self, name=None):
         logging.info('Saving AmpliconMatrix')
 
@@ -89,6 +125,9 @@ class AmpliconMatrix:
 class AttributeMapping:
 
     def __init__(self, upa, amp_mat):
+        '''
+        Needs amp_mat for root ref and id mapping
+        '''
         self.upa = upa
         self.amp_mat = amp_mat
         self._get_obj()
@@ -104,11 +143,14 @@ class AttributeMapping:
         self.obj = obj['data'][0]['data']
 
 
-    def update_attribute(self, ind: int, id2attr_d: dict):
+    def map_update_attribute(self, ind: int, id2attr: dict, map_ids_first=True):
         '''
-        Update attribute at index `ind` using mapping `id2attr_d`
+        Update attribute at index `ind` using mapping `id2attr`
         '''
-        for id, attr in id2attr_d.items():
+        if map_ids_first is True:
+            id2attr = self.amp_mat._map_id2attr_ids(id2attr)
+
+        for id, attr in id2attr.items():
             self.obj['instances'][id][ind] = attr
 
 

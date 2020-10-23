@@ -370,7 +370,7 @@ class kb_PICRUSt2:
 
         #
         ##
-        ### save Amplicon workflow objects 
+        ### update/save Amplicon workflow objects 
         ####
         #####
 
@@ -386,9 +386,9 @@ class kb_PICRUSt2:
         if amp_mat.row_attrmap_upa is not None: 
 
             # update row AttributeMapping with traits
-            id2traits_d = OutfileWrangler.parse_picrust2_traits(path_abun_predictions_tsv_gz_flpth)
+            id2attr = OutfileWrangler.parse_picrust2_traits(path_abun_predictions_tsv_gz_flpth)
             ind = row_attrmap.get_attribute_slot_warn(attribute, source)
-            row_attrmap.update_attribute(ind, id2traits_d)
+            row_attrmap.map_update_attribute(ind, id2attr)
             row_attrmap_upa_new = row_attrmap.save()
 
             # update AmpliconMatrix which references row AttributeMapping
