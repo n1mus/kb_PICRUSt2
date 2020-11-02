@@ -19,6 +19,7 @@ from installed_clients.FunctionalProfileUtilClient import FunctionalProfileUtil
 from installed_clients.GenericsAPIClient import GenericsAPI
 
 from .util.kbase_obj import AmpliconMatrix, AttributeMapping
+from .util.outfile import OutfileWrangler
 from .util.error import *
 from .util.dprint import dprint
 from .util.config import var, reset_var
@@ -46,130 +47,6 @@ def run_check(cmd):
         )
         raise NonZeroReturnException(msg)
 
-####################################################################################################
-####################################################################################################
-class OutfileWrangler:
-
-    #####
-    #####
-    @staticmethod
-    def do_code2desc(df: pd.DataFrame, code2desc_tsv_gz_flpth: str, code_in='col') -> pd.DataFrame:
-        '''
-        df - code is in index or column names
-        code2desc_tsv_gz_flpth - two columns, code and description
-        '''
-
-        if code_in not in ['row', 'col']:
-            raise Exception()
-
-        if code_in == 'row':
-            df = df.T
-
-        # parse code2desc tsv
-        code2desc_df = pd.read_csv(
-                code2desc_tsv_gz_flpth,
-                sep='\t', 
-                names=['code', 'description'], 
-                index_col='code', 
-                compression='gzip'
-        )
-
-        # convert to dict
-        code2desc_d = code2desc_df['description'].to_dict() # cast to Series first to avoid annoying nested dict
-
-        df = df.rename(columns=code2desc_d)
-
-        if code_in == 'row':
-            df = df.T
-
-        return df
-
-    #####
-    #####
-    @staticmethod
-    def parse_picrust2_traits(id_x_code_tsv_gz_flpth, dlm=',') -> dict:
-        '''
-        id_x_code_tsv_flpth - created by picrust2_pipeline.py
-                              rows are amplicon ids, columns are MetaCyc codes
-                              (leaves out any ids or codes with no hits)
-
-        Also translated MetaCyc codes into descriptoins
-        '''
-                
-        ##
-        ## translate MetaCyc pathway codes to descriptions
-
-        id_x_code_df = pd.read_csv(
-                id_x_code_tsv_gz_flpth, 
-                sep='\t', 
-                header=0, 
-                index_col='sequence', 
-                compression='gzip'
-        )
-
-        id_x_desc_df = OutfileWrangler.do_code2desc(id_x_code_df, var.metacyc_pathway_code2desc_tsvgz)
-
-        ##
-        ## aggregate MetaCyc descriptions for each id
-
-        desc_npArr = np.array(id_x_desc_df.columns.tolist())
-        traitsStr_l = []
-
-        for sequence, row in id_x_desc_df.iterrows():
-            abun_l = list(row) 
-            ind_nonzero_npArr = np.nonzero(abun_l)[0]
-            traitsStr_l.append(dlm.join(list(desc_npArr[ind_nonzero_npArr])))
-
-        id_x_desc_df['traits'] = traitsStr_l
-
-        id2traits_d = id_x_desc_df['traits'].to_dict() # cast to Series first to avoid annoying nested dict
-
-        return id2traits_d
-
-
-    #####
-    #####
-    @staticmethod
-    def pad_0_vecs(tsv_flpth, amp_mat):
-        '''
-        PICRUSt2 drops ids/samples that are all 0s
-        Restore them in original order here
-        '''
-        logging.info('0-padding TSV %s' % tsv_flpth)
-        t0 = time.time()
-
-        index = var.tsvFlnm2Index[os.path.basename(tsv_flpth)]
-        df_partial = pd.read_csv(tsv_flpth, sep='\t', index_col=0)
-
-        # orient PICRUSt2 output matrix as something vs. func
-        if index == 'sample':
-            df_partial = df_partial.T
-            id_l_full = amp_mat.obj['data']['col_ids']
-        elif index == 'amplicon':
-            id_l_full = amp_mat.obj['data']['row_ids']
-        else:
-            raise Exception(index)
-
-        if df_partial.shape[0] == len(id_l_full):
-            return
-
-        df_full = pd.DataFrame(
-            np.zeros((len(id_l_full), df_partial.shape[1])), 
-            index=id_l_full,
-            columns=df_partial.columns
-        )
-
-        df_full.loc[df_partial.index, df_partial.columns] = df_partial.values
-
-        # undo orient
-        if index == 'sample':
-            df_full = df_full.T
-
-        df_full.to_csv(tsv_flpth, sep='\t')
-
-        logging.info('0-padding TSV %s took %.2fs' %(tsv_flpth, (time.time()-t0)))
-
-        
 ####################################################################################################
 ####################################################################################################
 
@@ -309,12 +186,12 @@ class kb_PICRUSt2:
         seq_flpth = os.path.join(var.return_dir, 'study_seqs.fna')
         seq_abundance_table_flpth = os.path.join(var.return_dir, 'study_seqs.tsv') 
 
-
-        #amp_set.to_fasta(seq_flpth)
         amp_mat.to_fasta(seq_flpth)
         amp_mat.to_seq_abundance_table(seq_abundance_table_flpth)
 
 
+        # objs should be app globals
+        var.amp_mat = amp_mat
 
 
         #
@@ -400,10 +277,6 @@ class kb_PICRUSt2:
                 {'ref': amp_mat_upa_new, 'description': 'Updated row AttributeMapping reference'},
             ])
 
-            FP_amp_mat_ref = amp_mat_upa_new
-        
-        else:
-            FP_amp_mat_ref = params['amplicon_matrix_upa']
     
        
 
@@ -426,17 +299,22 @@ class kb_PICRUSt2:
                 os.path.join(tsv_dir, tsv_flnm)
             )
 
+        tsv_flpth_l = [os.path.join(tsv_dir, tsv_flnm) for tsv_flnm in var.tsvgzRelFlpth2TsvFlnm.values()]
+
         #
         ##
         ### save FunctionalProfile objects
         ####
         #####
 
-        logging.info('FunctionalProfile business')
-
-        tsv_flpth_l = [os.path.join(tsv_dir, tsv_flnm) for tsv_flnm in var.tsvgzRelFlpth2TsvFlnm.values()]
+        logging.info('Starting FunctionalProfile business')
 
 
+
+        if var.debug:
+            FP_amp_mat_ref = params['amplicon_matrix_upa']  # this makes mocking more flexible in case something makes a fake UPA
+        else:
+            FP_amp_mat_ref = amp_mat_upa_new # this AmpliconMatrix is new one with new AttributeMapping
 
 
         ## Community FPs
@@ -451,9 +329,18 @@ class kb_PICRUSt2:
             var.warnings.append(msg)
         
         elif params.getd('create_sample_fps') is True and 'sample_set_ref' in amp_mat.obj:
-            # Pad 0 samples
+
+            # Check nothing dropped 
             for tsv_flpth in tsv_flpth_l[:3]:
-                OutfileWrangler.pad_0_vecs(tsv_flpth, amp_mat)
+                OutfileWrangler.check_dropped_sample_ids(tsv_flpth, amp_mat)
+
+            # look at TSVs 
+            dprint(
+                '# before padding',
+                'ls -lh %s' % tsv_dir,
+                'file -i %s/*' % tsv_dir, 
+                run='cli'
+            )
 
             var.objects_created.append(dict(
                 ref=var.fpu.import_func_profile(dict(
@@ -465,9 +352,9 @@ class kb_PICRUSt2:
                     profile_category='community',
                     data_epistemology='predicted',
                     epistemology_method='PICRUSt2',
-                    description='MetaCyc vs. Sample',
+                    description='Pathway abundance, MetaCyc vs. sample', # put these descriptions in config so i can use them in heatmap titles (?) TODO
                 ))['func_profile_ref'],
-                description='MetaCyc vs. Sample',
+                description='Pathway abundance, MetaCyc vs. sample',
             ))
 
             var.objects_created.append(dict(
@@ -480,9 +367,9 @@ class kb_PICRUSt2:
                     profile_category='community',
                     data_epistemology='predicted',
                     epistemology_method='PICRUSt2',
-                    description='EC vs. sample',
+                    description='Gene family abundance, EC vs. sample',
                 ))['func_profile_ref'],
-                description='EC vs. Sample',
+                description='Gene family abundance, EC vs. sample',
             ))
 
             var.objects_created.append(dict(
@@ -495,17 +382,27 @@ class kb_PICRUSt2:
                     profile_category='community',
                     data_epistemology='predicted',
                     epistemology_method='PICRUSt2',
-                    description='KO vs. Sample',
+                    description='Gene family abundance, KO vs. sample',
                 ))['func_profile_ref'],
-                description='KO vs. Sample',
+                description='Gene family abundance, KO vs. sample',
             ))
 
 
         ## Organism FPs ##
         if params.getd('create_amplicon_fps') is True:
-            # Pad 0 samples
+
+            # Pad dropped amplicons
+            # Checking that they are the unaligned/distant ones
             for tsv_flpth in tsv_flpth_l[3:]:
-                OutfileWrangler.pad_0_vecs(tsv_flpth, amp_mat)
+                OutfileWrangler.check_pad_dropped_amplicon_ids(tsv_flpth, amp_mat)
+
+            # look at TSVs after padding
+            dprint(
+                '# after padding',
+                'ls -lh %s' % tsv_dir,
+                'file -i %s/*' % tsv_dir, 
+                run='cli'
+            )
 
             var.objects_created.append(dict(
                 ref=var.fpu.import_func_profile(dict(
@@ -517,9 +414,9 @@ class kb_PICRUSt2:
                     profile_category='organism',
                     data_epistemology='predicted',
                     epistemology_method='PICRUSt2',
-                    description='Amplicon vs. MetaCyc',
+                    description='Pathway abundance, amplicon vs. MetaCyc',
                 ))['func_profile_ref'],
-                description='Amplicon vs. MetaCyc',
+                description='Pathway abundance, amplicon vs. MetaCyc',
             ))
 
             var.objects_created.append(dict(
@@ -532,9 +429,9 @@ class kb_PICRUSt2:
                     profile_category='organism',
                     data_epistemology='predicted',
                     epistemology_method='PICRUSt2',
-                    description='Amplicon vs. EC',
+                    description='Gene family abundance, amplicon vs. EC',
                 ))['func_profile_ref'],
-                description='Amplicon vs. EC',
+                description='Gene family abundance, amplicon vs. EC',
             ))
      
             var.objects_created.append(dict(
@@ -547,14 +444,16 @@ class kb_PICRUSt2:
                     profile_category='organism',
                     data_epistemology='predicted',
                     epistemology_method='PICRUSt2',
-                    description='Amplicon vs. KO',
+                    description='Gene family abundance, amplicon vs. KO',
                 ))['func_profile_ref'],
-                description='Amplicon vs. KO',
+                description='Gene family abundance, amplicon vs. KO',
             ))
+
+
 
         #
         ##
-        ### prepare TSV dir again (don't need 0-padded)
+        ### prepare TSV dir again (don't need padded)
         ####
         #####
 
@@ -570,6 +469,10 @@ class kb_PICRUSt2:
                 os.path.join(var.out_dir, tsvgz_relflpth),
                 os.path.join(tsv_dir, tsv_flnm)
             )
+
+        tsv_flpth_l = [os.path.join(tsv_dir, tsv_flnm) for tsv_flnm in var.tsvgzRelFlpth2TsvFlnm.values()]
+
+        # new tsv_dir not necessary? can read compressed
 
         #
         ##

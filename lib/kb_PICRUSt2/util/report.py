@@ -42,10 +42,10 @@ def do_heatmap(tsv_flpth, png_flpth, html_flpth): # TODO log coloring?
     df = pd.read_csv(tsv_flpth, sep='\t', index_col=0)
     tsv_flnm = os.path.basename(tsv_flpth)
 
-    dprint('df.shape', run=locals())
+    dprint('df.shape # original', run=locals())
 
     ###
-    ###
+    ### subset
     if df.shape[0] > MAX_LEN or df.shape[1] > MAX_LEN:
         row_ordering = df.sum(axis=1).values.argsort()[::-1]
         col_ordering = df.sum(axis=0).values.argsort()[::-1]
@@ -54,7 +54,7 @@ def do_heatmap(tsv_flpth, png_flpth, html_flpth): # TODO log coloring?
         df = df.iloc[:MAX_LEN,:MAX_LEN]
 
 
-    dprint('df.shape', run=locals())
+    dprint('df.shape # subset', run=locals())
 
     ###
     ###

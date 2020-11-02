@@ -6,6 +6,8 @@ _config = DotMap({
         '/miniconda/envs/picrust2/lib/python3.6/site-packages/picrust2/default_files/description_mapfiles/metacyc_pathways_info.txt.gz', 
     'picrust2_pipeline_flpth': '/miniconda/envs/picrust2/bin/picrust2_pipeline.py',
 
+    #--- these file names/paths should all be in corresponding order ---
+
     'tsvgzRelFlpth2TsvFlnm': {
         'pathways_out/path_abun_unstrat.tsv.gz': 'path_abun_unstrat.tsv', # func x sample
         'EC_metagenome_out/pred_metagenome_unstrat.tsv.gz': 'EC_pred_metagenome_unstrat.tsv', # func x sample

@@ -17,6 +17,8 @@ subproc_run = functools.partial(
 TAG_WIDTH = 80
 MAX_LINES = 70
 
+# TODO catch exceptions here
+
 
 def dprint(*args, run=False, where=False, time=False, max_lines=MAX_LINES, exit=False, subproc_run_kwargs={}, print_kwargs={}):
 

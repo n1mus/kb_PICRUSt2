@@ -23,6 +23,7 @@ testData_dir = '/kb/module/test/data'
 ##################################
 
 
+"""
 def mock_pad_0_vecs(self): # TODO store 0-padded?
     '''
     This only helps for: 
@@ -30,6 +31,7 @@ def mock_pad_0_vecs(self): # TODO store 0-padded?
     * if fpu.import_func_profile also mocked
     '''
     pass
+"""
 
 def get_mock_fpu(dataset=None):
     mock_fpu = create_autospec(FunctionalProfileUtil, instance=True)

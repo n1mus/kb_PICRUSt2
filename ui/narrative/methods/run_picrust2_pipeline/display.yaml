@@ -1,10 +1,10 @@
 #
 # define display information
 #
-name: PICRUSt2
+name: PICRUSt2 Pipeline v2.3.0_b
 
 tooltip: |
-    Predict prokaryote EC, KO, and MetaCyc functions from 16S amplicon matrix
+    Predict prokaryote EC, KO, and MetaCyc abundance from 16S amplicon matrix
 
 screenshots: []
 
@@ -50,10 +50,13 @@ parameter-groups:
         ui-name: |
             FunctionalProfile options
         short-hint: |
-            FunctionalProfile options
+            FunctionalProfile options. Uncheck these to avoid creation of up to 6 <code>FunctionalProfile</code> objects
 
 description : |
 
+
+    <!--------------------------------------------------------------------------------------------->
+    <h3>App Behavior</h3>
 
     <p>
     If input <code>AmpliconMatrix</code> has a row <code>AttributeMapping</code>, 
@@ -64,7 +67,6 @@ description : |
     <p>
     Can generate three new community <code>FunctionalProfile</code>s and three new organism <code>FunctionalProfile</code>s;
     three because one for each of PICRUSt2's predicted EC, KO, and MetaCyc functions. 
-    The <code>FunctionalProfile</code>s will reference the new <code>AmpliconMatrix</code> if one was created.
     </p>
 
     <p>
@@ -80,12 +82,19 @@ description : |
     2800 because 8M data points is a technical restraint.
     </p>
 
+    <!--------------------------------------------------------------------------------------------->
+    <h3>Resources</h3>
+
+    <a href="https://github.com/picrust/picrust2/wiki">PICRUSt2 Wiki</a>
+
+    <!--------------------------------------------------------------------------------------------->
+    <h3>Aknowledgements</h3>
+
     <p>
     Thanks to Pamela Weisenhorn for helpful comments and UI/behavior suggestions.
     </p>
 
-
-publications: # Is it weird/shady that I got all these and citations from the PICRUSt2 paper?
+publications: # Is it weird/shady that I got most citations from the PICRUSt2 paper?
 
     -
         # PICRUSt2
@@ -93,6 +102,13 @@ publications: # Is it weird/shady that I got all these and citations from the PI
             Douglas, G.M., Maffei, V.J., Zaneveld, J.R. et al. PICRUSt2 for prediction of metagenome functions. Nat Biotechnol 38, 685–688 (2020), https://doi.org/10.1038/s41587-020-0548-6 
         link: |
             https://doi.org/10.1038/s41587-020-0548-6
+
+    -
+        # HMMER
+        display-text: |
+            HMMER
+        link: |
+            http://www.hmmer.org/
 
     -
         # EPA-ng
@@ -115,12 +131,6 @@ publications: # Is it weird/shady that I got all these and citations from the PI
         link: |
             https://doi.org/10.1093/bioinformatics/btx701
 
-    -
-        # HMMER
-        display-text: |
-            HMMER
-        link: |
-            http://www.hmmer.org/
 
     -
         # IMG
@@ -128,6 +138,12 @@ publications: # Is it weird/shady that I got all these and citations from the PI
             Victor M. Markowitz, I-Min A. Chen, Krishna Palaniappan, Ken Chu, Ernest Szeto, Yuri Grechkin, Anna Ratner, Biju Jacob, Jinghua Huang, Peter Williams, Marcel Huntemann, Iain Anderson, Konstantinos Mavromatis, Natalia N. Ivanova, Nikos C. Kyrpides, IMG: the integrated microbial genomes database and comparative analysis system, Nucleic Acids Research, Volume 40, Issue D1, 1 January 2012, Pages D115–D122, https://doi.org/10.1093/nar/gkr1044
         link: |
             https://doi.org/10.1093/nar/gkr1044
+
+
+    -
+        # MinPath
+        display-text: |
+            MinPath
     -
         # KO
         display-text: |

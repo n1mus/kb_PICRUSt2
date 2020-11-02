@@ -16,7 +16,8 @@ from kb_PICRUSt2.kb_PICRUSt2Server import MethodContext
 from kb_PICRUSt2.authclient import KBaseAuth as _KBaseAuth
 from installed_clients.WorkspaceClient import Workspace
 
-from kb_PICRUSt2.kb_PICRUSt2Impl import kb_PICRUSt2, run_check, OutfileWrangler
+from kb_PICRUSt2.kb_PICRUSt2Impl import kb_PICRUSt2, run_check
+from kb_PICRUSt2.util.outfile import OutfileWrangler
 from kb_PICRUSt2.util.config import var
 from kb_PICRUSt2.util.dprint import dprint
 from kb_PICRUSt2.util.kbase_obj import AmpliconMatrix, AttributeMapping, Report
@@ -463,12 +464,12 @@ class kb_PICRUSt2Test(unittest.TestCase):
  
     ####################
     ####################
-    #@patch_('kb_PICRUSt2.kb_PICRUSt2Impl.DataFileUtil', new=lambda *a: get_mock_dfu('enigma50by30')) # ?
+    @patch_('kb_PICRUSt2.kb_PICRUSt2Impl.DataFileUtil', new=lambda *a: get_mock_dfu('enigma50by30'))  # ?
     @patch_('kb_PICRUSt2.kb_PICRUSt2Impl.GenericsAPI', new=lambda *a, **k: get_mock_gapi('enigma50by30'))
     @patch('kb_PICRUSt2.kb_PICRUSt2Impl.run_check', new=get_mock_run_check('enigma50by30'))
     @patch_('kb_PICRUSt2.kb_PICRUSt2Impl.FunctionalProfileUtil', new=lambda *a, **k: get_mock_fpu(''))
     @patch_('kb_PICRUSt2.kb_PICRUSt2Impl.KBaseReport', new=lambda *a, **k: get_mock_kbr())
-    def test_has_row_AttributeMapping(self):
+    def test_has_row_AttributeMapping_create_all(self):
         ret = self.serviceImpl.run_picrust2_pipeline(
             self.ctx, {
                 **self.params_ws,
@@ -585,25 +586,29 @@ class kb_PICRUSt2Test(unittest.TestCase):
 
     ####################
     ####################
-    @patch_('kb_PICRUSt2.kb_PICRUSt2Impl.DataFileUtil', new=lambda *a: get_mock_dfu('enigma17770by511'))
-    @patch_('kb_PICRUSt2.kb_PICRUSt2Impl.GenericsAPI', new=lambda *a, **k: get_mock_gapi('enigma17770by511'))
+    @patch('kb_PICRUSt2.kb_PICRUSt2Impl.DataFileUtil', new=lambda *a: get_mock_dfu('enigma17770by511'))
+    @patch('kb_PICRUSt2.kb_PICRUSt2Impl.GenericsAPI', new=lambda *a, **k: get_mock_gapi('enigma17770by511'))
     @patch('kb_PICRUSt2.kb_PICRUSt2Impl.run_check', new=get_mock_run_check('enigma17770by511'))
-    @patch_('kb_PICRUSt2.kb_PICRUSt2Impl.FunctionalProfileUtil', new=lambda *a, **k: get_mock_fpu(''))
+    @patch('kb_PICRUSt2.kb_PICRUSt2Impl.FunctionalProfileUtil', new=lambda *a, **k: get_mock_fpu(''))
     @patch_('kb_PICRUSt2.kb_PICRUSt2Impl.KBaseReport', new=lambda *a, **k: get_mock_kbr())
     def test_large_dataset(self):
+        '''
+        Unfortunately you should normally test FPU here
+        This is NOT fast due to primarily ? and FPU
+        '''
 
         ret = self.serviceImpl.run_picrust2_pipeline(
             self.ctx, {
                 **self.params_ws,
                 'amplicon_matrix_upa': enigma17770by511,
                     'fp_options': {
-                        'create_amplicon_fps': False,
-                        'create_sample_fps': False,
+                        'create_amplicon_fps': True,
+                        'create_sample_fps': True,
                     },
             }
         )
 
-        self.assertTrue(len(var.objects_created) == 2, var.objects_created) 
+        self.assertTrue(len(var.objects_created) == 8, var.objects_created) 
         
 
 #!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
@@ -716,7 +721,7 @@ e.g., filter to tests in `run_tests`
 Comment out parts like `delattr` to deactivate
 '''
 integration_tests = [
-    'test_has_row_AttributeMapping', 'test_has_no_row_AttributeMapping',
+    'test_has_row_AttributeMapping_create_all', 'test_has_no_row_AttributeMapping',
     'test_FP_options_wSampleSet', 'test_FP_options_noSampleSet',
     'test_large_dataset',
 ]
@@ -729,7 +734,7 @@ large_tests = [
     'test_large_dataset', 'test_large_heatmap',
 ]
 run_tests = [
-    'test_AttributeMapping',
+    'test_large_dataset',
 ]
 norun_tests = [
     'test_large_dataset',
@@ -738,7 +743,7 @@ norun_tests = [
 for key, value in kb_PICRUSt2Test.__dict__.copy().items():
     if key.startswith('test') and callable(value):
         if key not in run_tests:
-            #delattr(kb_PICRUSt2Test, key)
+            delattr(kb_PICRUSt2Test, key)
             pass
 
 
