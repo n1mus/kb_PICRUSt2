@@ -33,15 +33,15 @@ class OutfileWrangler:
     #####
     ##### TODO read/write GZ since IO takes like 2 min
     @staticmethod
-    def check_pad_dropped_amplicon_ids(tsv_flpth, amp_mat):
+    def check_dropped_amplicon_ids(tsv_flpth, amp_mat):
         '''
-        Pad dropped amplicons (due to not aligning enough or too large NSTI)
-        with NaN
+        Check dropped amplicons (due to not aligning enough or too large NSTI)
+        
 
 
         Parameters
         ----------
-        tsv_flpth - the thing to pad
+        tsv_flpth - the thing to check
         nsti_tsvgz_flpth - has info about dropped amplicons
         amp_mat - has info about all amplicons
         '''
@@ -50,19 +50,19 @@ class OutfileWrangler:
         index = var.tsvFlnm2Index[os.path.basename(tsv_flpth)]
         assert index == 'amplicon' 
 
-        logging.info('Starting padding dropped amplicons for TSV %s' % tsv_flpth)
+        logging.info('Starting checking dropped amplicons for TSV %s' % tsv_flpth)
         t0 = time.time()
 
         #
         df_partial = pd.read_csv(tsv_flpth, sep='\t', index_col=0)
         id_l_full = amp_mat.obj['data']['row_ids']
  
-        # no need to pad
+        # no need to check
         if df_partial.shape[0] == len(id_l_full):
-            logging.info('No need for padding TSV %s' % tsv_flpth)
+            logging.info('No need for checking TSV %s' % tsv_flpth)
             return
 
-        # check align/nsti padded
+        # check align/nsti
         dropped_align, dropped_nsti = OutfileWrangler._get_dropped_ids(amp_mat)
         dprint(
             'len(dropped_align)',
@@ -74,6 +74,7 @@ class OutfileWrangler:
         difference = sorted(set(id_l_full) - set(df_partial.index))
         assert difference == sorted(dropped_align) or difference == sorted(dropped_align + dropped_nsti)
 
+        """
         # full-sized DF of NaNs
         # in order of AmpliconMatrix
         df_full = pd.DataFrame(
@@ -98,9 +99,10 @@ class OutfileWrangler:
         ) 
 
         # use %g to try to keep TSV/JSON small for integers
-        df_full.to_csv(tsv_flpth, sep='\t', na_rep='', float_format='%g')
+        #df_full.to_csv(tsv_flpth, sep='\t', na_rep='', float_format='%g')
    
         logging.info('Finished padding TSV %s, took %.2fs' %(tsv_flpth, (time.time()-t0)))
+        """
 
 
     #####
@@ -130,8 +132,8 @@ class OutfileWrangler:
         return dropped_align, dropped_nsti
 
 
-
     """
+
     #####
     #####
     @staticmethod

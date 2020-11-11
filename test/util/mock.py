@@ -57,6 +57,14 @@ def get_mock_gapi(dataset):
         flpth = os.path.join(testData_dir, 'by_dataset_input', dataset, 'fetch_sequence/seqs.fna')
         return flpth
 
+    def mock_gapi_save_object(params):
+        params_str = str(params)
+        if len(params_str) > 100: params_str = params_str[:100] + ' ...'
+        logging.info('Mocking `gapi.save_object` with `params=%s`' % params_str)
+
+        return {'obj_ref': '-13/-13/-13'}
+    
+    mock_gapi.save_object.side_effect = mock_gapi_save_object
     mock_gapi.fetch_sequence.side_effect = mock_gapi_fetch_sequence
 
     return mock_gapi

@@ -282,24 +282,33 @@ class kb_PICRUSt2:
 
         #
         ##
-        ### prepare TSV dir
+        ### prepare dir to give FPU decompressed TSVs
         ####
         #####
 
 
-        tsv_dir = os.path.join(var.shared_folder, 'kbp2_tsv_dir_' + str(uuid.uuid4()))
+        tsv_dir = os.path.join(var.shared_folder, 'kbp2_decompressed_tsv_dir_' + str(uuid.uuid4()))
         os.mkdir(tsv_dir)
 
         logging.info('Preparing TSV directory %s' % tsv_dir)
 
-        dprint('touch %s' % os.path.join(tsv_dir, '#' + amp_mat.name))
-        for tsvgz_relflpth, tsv_flnm in var.tsvgzRelFlpth2TsvFlnm.items():
+        dprint('touch %s' % os.path.join(tsv_dir, '#' + amp_mat.name)) # debug annotation
+        for tsvgz_relflpth, tsv_flnm in var.tsvgzRelFlpth2TsvFlnm.items(): # output dir to new dir
             gunzip_to(
                 os.path.join(var.out_dir, tsvgz_relflpth),
                 os.path.join(tsv_dir, tsv_flnm)
             )
 
-        tsv_flpth_l = [os.path.join(tsv_dir, tsv_flnm) for tsv_flnm in var.tsvgzRelFlpth2TsvFlnm.values()]
+        tsv_flpth_l = [os.path.join(tsv_dir, tsv_flnm) for tsv_flnm in var.tsvgzRelFlpth2TsvFlnm.values()] # new, decompressed TSVs
+        
+
+        # look at TSVs 
+        dprint(
+            'ls -lh %s' % tsv_dir,
+            'file -i %s/*' % tsv_dir, 
+            run='cli'
+        )
+
 
         #
         ##
@@ -310,7 +319,6 @@ class kb_PICRUSt2:
         logging.info('Starting FunctionalProfile business')
 
 
-
         if var.debug:
             FP_amp_mat_ref = params['amplicon_matrix_upa']  # this makes mocking more flexible in case something makes a fake UPA
         else:
@@ -318,7 +326,7 @@ class kb_PICRUSt2:
 
 
         ## Community FPs
-        if params.getd('create_sample_fps') is True and 'sample_set_ref' not in amp_mat.obj:
+        if params.getd('create_sample_fps') is True and 'sample_set_ref' not in amp_mat.obj: # TODO why?
             msg = (
                 'Sorry, input AmpliconMatrix %s does not have a SampleSet reference '
                 'and so creating community FunctionalProfiles is prohibited. '
@@ -330,17 +338,10 @@ class kb_PICRUSt2:
         
         elif params.getd('create_sample_fps') is True and 'sample_set_ref' in amp_mat.obj:
 
-            # Check nothing dropped 
+            # Check nothing dropped (debug)
             for tsv_flpth in tsv_flpth_l[:3]:
                 OutfileWrangler.check_dropped_sample_ids(tsv_flpth, amp_mat)
 
-            # look at TSVs 
-            dprint(
-                '# before padding',
-                'ls -lh %s' % tsv_dir,
-                'file -i %s/*' % tsv_dir, 
-                run='cli'
-            )
 
             var.objects_created.append(dict(
                 ref=var.fpu.import_func_profile(dict(
@@ -391,18 +392,9 @@ class kb_PICRUSt2:
         ## Organism FPs ##
         if params.getd('create_amplicon_fps') is True:
 
-            # Pad dropped amplicons
-            # Checking that they are the unaligned/distant ones
+            # Check dropped amplicons are the unaligned/distant ones (debug)
             for tsv_flpth in tsv_flpth_l[3:]:
-                OutfileWrangler.check_pad_dropped_amplicon_ids(tsv_flpth, amp_mat)
-
-            # look at TSVs after padding
-            dprint(
-                '# after padding',
-                'ls -lh %s' % tsv_dir,
-                'file -i %s/*' % tsv_dir, 
-                run='cli'
-            )
+                OutfileWrangler.check_dropped_amplicon_ids(tsv_flpth, amp_mat)
 
             var.objects_created.append(dict(
                 ref=var.fpu.import_func_profile(dict(
@@ -451,28 +443,6 @@ class kb_PICRUSt2:
 
 
 
-        #
-        ##
-        ### prepare TSV dir again (don't need padded)
-        ####
-        #####
-
-
-        tsv_dir = os.path.join(var.shared_folder, 'kbp2_tsv_dir_' + str(uuid.uuid4()))
-        os.mkdir(tsv_dir)
-
-        logging.info('Preparing TSV directory %s' % tsv_dir)
-
-        dprint('touch %s' % os.path.join(tsv_dir, '#' + amp_mat.name))
-        for tsvgz_relflpth, tsv_flnm in var.tsvgzRelFlpth2TsvFlnm.items():
-            gunzip_to(
-                os.path.join(var.out_dir, tsvgz_relflpth),
-                os.path.join(tsv_dir, tsv_flnm)
-            )
-
-        tsv_flpth_l = [os.path.join(tsv_dir, tsv_flnm) for tsv_flnm in var.tsvgzRelFlpth2TsvFlnm.values()]
-
-        # new tsv_dir not necessary? can read compressed
 
         #
         ##

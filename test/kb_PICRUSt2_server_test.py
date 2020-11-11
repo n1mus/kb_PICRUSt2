@@ -113,6 +113,7 @@ class kb_PICRUSt2Test(unittest.TestCase):
 
             self.assertTrue(id2traits_d == ans)
 
+        """
         ## Test `OutfileWrangler.pad_0_vecs` ##
         with self.subTest('Test OutfileWrangler.pad_0_vecs'):
 
@@ -148,6 +149,7 @@ class kb_PICRUSt2Test(unittest.TestCase):
                 df0.values,
                 df1.values
             )
+        """
 
 
     ####################
@@ -734,16 +736,16 @@ large_tests = [
     'test_large_dataset', 'test_large_heatmap',
 ]
 run_tests = [
-    'test_large_dataset',
+    'test_has_no_row_AttributeMapping',
 ]
 norun_tests = [
     'test_large_dataset',
-] 
+]
 
 for key, value in kb_PICRUSt2Test.__dict__.copy().items():
     if key.startswith('test') and callable(value):
         if key not in run_tests:
-            delattr(kb_PICRUSt2Test, key)
+            #delattr(kb_PICRUSt2Test, key)
             pass
 
 

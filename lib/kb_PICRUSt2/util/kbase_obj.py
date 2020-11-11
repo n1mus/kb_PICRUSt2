@@ -103,6 +103,7 @@ class AmpliconMatrix:
     def save(self, name=None):
         logging.info('Saving AmpliconMatrix')
 
+        '''
         info = var.dfu.save_objects(
             {'id': var.params['workspace_id'],
              "objects": [{
@@ -113,6 +114,14 @@ class AmpliconMatrix:
              }]})[0]
 
         upa_new = "%s/%s/%s" % (info[6], info[0], info[4])
+        '''
+
+        upa_new = var.gapi.save_object({
+            'obj_type': 'KBaseMatrices.AmpliconMatrix', # TODO version
+            'obj_name': name if name is not None else self.name,
+            'data': self.obj,
+            'workspace_id': var.params['workspace_id'],
+        })['obj_ref']
 
         return upa_new
 
