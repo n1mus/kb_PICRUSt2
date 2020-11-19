@@ -181,6 +181,11 @@ class kb_PICRUSt2:
 
 
 
+        # validate input data
+
+        amp_mat.validate_seq_abundance_data()
+
+
         # generate input files
         
         seq_flpth = os.path.join(var.return_dir, 'study_seqs.fna')

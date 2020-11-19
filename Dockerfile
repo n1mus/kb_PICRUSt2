@@ -32,6 +32,8 @@ RUN apt-get install --yes vim
 
 RUN pip install -U kaleido
 
+RUN pip install numpy==1.19.2
+
 ENV PYTHONTRACEMALLOC=1
 
 # -----------------------------------------

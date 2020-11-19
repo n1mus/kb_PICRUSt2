@@ -54,6 +54,10 @@ parameter-groups:
 
 description : |
 
+    <p>
+    Predicts EC, KO, and MetaCyc abundance per 16S gene or per sample, 
+    provided a 16S abundance table.
+    </p>
 
     <!--------------------------------------------------------------------------------------------->
     <h3>App Behavior</h3>
@@ -78,7 +82,7 @@ description : |
     <p>
     The heatmaps can be very large and sparse, which can make them uninformative and difficult to display.
     A somewhat arbitrary filtering technique is adopted: 
-    the 2800 rows or columns with the largest sums are retained. 
+    the 2800 rows or columns with the largest sums (or L1 norms in this case) are retained. 
     2800 because 8M data points is a technical restraint.
     </p>
 
@@ -91,7 +95,7 @@ description : |
     <h3>Aknowledgements</h3>
 
     <p>
-    Thanks to Pamela Weisenhorn for helpful comments and UI/behavior suggestions.
+    Thanks to P. Weisenhorn for helpful comments and UI/behavior suggestions.
     </p>
 
 publications: # Is it weird/shady that I got most citations from the PICRUSt2 paper?

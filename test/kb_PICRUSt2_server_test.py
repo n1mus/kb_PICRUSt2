@@ -20,7 +20,7 @@ from kb_PICRUSt2.kb_PICRUSt2Impl import kb_PICRUSt2, run_check
 from kb_PICRUSt2.util.outfile import OutfileWrangler
 from kb_PICRUSt2.util.config import var
 from kb_PICRUSt2.util.dprint import dprint
-from kb_PICRUSt2.util.kbase_obj import AmpliconMatrix, AttributeMapping, Report
+from kb_PICRUSt2.util.kbase_obj import AmpliconMatrix, AttributeMapping
 from kb_PICRUSt2.util.report import do_heatmap, HTMLReportWriter
 from kb_PICRUSt2.util.error import *
 from util.mock import *
@@ -113,43 +113,6 @@ class kb_PICRUSt2Test(unittest.TestCase):
 
             self.assertTrue(id2traits_d == ans)
 
-        """
-        ## Test `OutfileWrangler.pad_0_vecs` ##
-        with self.subTest('Test OutfileWrangler.pad_0_vecs'):
-
-            amp_mat = AmpliconMatrix(dummy_10by8_AmpMat)
-
-            # amplicon x func
-            flpth0 = '/kb/module/test/data/by_dataset_input/dummy_10by8/return/PICRUSt2_output/pathways_out/path_abun_predictions.tsv'
-            flpth1 = os.path.join(run_dir, os.path.basename(flpth0))
-
-            df0 = pd.read_csv(flpth0, sep='\t', index_col=0, header=0)
-            df_drop = df0.drop(index=df0.index[np.where(df0.sum(axis=1) == 0)][0])
-            df_drop.to_csv(flpth1, sep='\t')
-
-            OutfileWrangler.pad_0_vecs(flpth1, amp_mat)
-            df1 = pd.read_csv(flpth1, sep='\t', index_col=0, header=0)
-
-            assert np.allclose(
-                df0.values,
-                df1.values
-            )
-            
-            # func x sample    
-            flpth1 = os.path.join(run_dir, os.path.basename(flpth0))
-
-            df0 = pd.read_csv(flpth0, sep='\t', index_col=0, header=0)
-            df_drop = df0.drop(index=df0.index[np.where(df0.sum(axis=1) == 0)][0])
-            df_drop.to_csv(flpth1, sep='\t')
-
-            OutfileWrangler.pad_0_vecs(flpth1, amp_mat)
-            df1 = pd.read_csv(flpth1, sep='\t', index_col=0, header=0)
-
-            assert np.allclose(
-                df0.values,
-                df1.values
-            )
-        """
 
 
     ####################
@@ -182,6 +145,77 @@ class kb_PICRUSt2Test(unittest.TestCase):
         with open(seq_abundance_table_flpth) as f1:
             with open(seq_abundance_table_ref_flpth) as f2:
                 self.assertTrue(f1.read() == f2.read())
+
+    
+    ####################
+    ####################
+    @patch.dict('kb_PICRUSt2.util.kbase_obj.var', values={'dfu': get_mock_dfu('dummy_10by8')})
+    def test_AmpliconMatrix_validation(self):
+        '''
+        Test validation of amplicon table in AmpliconMatrix
+        Should be (1) count data,  missing (None) allowed
+        Can assume that obj holds data in list of lists of numeric/None
+        '''
+        
+        logging.info('Testing with test_AmpliconMatrix_validation')
+
+        amp_mat = AmpliconMatrix(dummy_10by8_AmpMat)
+        amp_mat.validate_seq_abundance_data()
+
+        amp_mat.obj['data']['values'] = [0.0, 0.0, 1319.0, 1.0] # float
+        amp_mat.validate_seq_abundance_data()
+
+        amp_mat.obj['data']['values'] = [0, 0, 1319, 1] # int
+        amp_mat.validate_seq_abundance_data()
+
+        amp_mat.obj['data']['values'] = [None, 0., 0., 1319., 1.] # float, with missing
+        amp_mat.validate_seq_abundance_data()
+
+        amp_mat.obj['data']['values'] = [None, 0, 0, 1319, 1] # int, with missing
+        amp_mat.validate_seq_abundance_data()
+
+        amp_mat.obj['data']['values'] = [None, 0, -0., 1319.0, 1] # int/float, with missing
+        amp_mat.validate_seq_abundance_data()
+
+        amp_mat.obj['data']['values'] = [None, None, 0, -0, 0.0, 0, 0.] # 0s, with missing
+        amp_mat.validate_seq_abundance_data()
+
+        amp_mat.obj['data']['values'] = [None, 0.999999999] # close enough
+        amp_mat.validate_seq_abundance_data() 
+
+        amp_mat.obj['data']['values'] = [None, -0.0000000001] # close enough
+        amp_mat.validate_seq_abundance_data() 
+
+        amp_mat.obj['data']['values'] = [0.9]
+        with self.assertRaises(ValidationException): amp_mat.validate_seq_abundance_data() 
+
+        amp_mat.obj['data']['values'] = [-1]
+        with self.assertRaises(ValidationException): amp_mat.validate_seq_abundance_data() 
+
+        amp_mat.obj['data']['values'] = [None, None, None]
+        with self.assertRaises(ValidationException): amp_mat.validate_seq_abundance_data() 
+
+        amp_mat.obj['data']['values'] = [None]
+        with self.assertRaises(ValidationException): amp_mat.validate_seq_abundance_data()
+
+        amp_mat.obj['data']['values'] = [None, -1]
+        with self.assertRaises(ValidationException): amp_mat.validate_seq_abundance_data()
+
+        amp_mat.obj['data']['values'] = [None, None, 1.00001]
+        with self.assertRaises(ValidationException): amp_mat.validate_seq_abundance_data()
+
+        amp_mat.obj['data']['values'] = [-1.0, 0, 1319]
+        with self.assertRaises(ValidationException): amp_mat.validate_seq_abundance_data()
+
+        amp_mat.obj['data']['values'] = [None, 0, 1, 2, 3, 4.5]
+        with self.assertRaises(ValidationException): amp_mat.validate_seq_abundance_data()
+
+        amp_mat.obj['data']['values'] = [None, 0.0, 1.0, 2.0, 3.0, 4.00001] # 4.00001 would pass with np.allclose default rtol
+        with self.assertRaises(ValidationException): amp_mat.validate_seq_abundance_data()
+
+
+
+
 
 
 
@@ -259,7 +293,6 @@ class kb_PICRUSt2Test(unittest.TestCase):
     @patch.dict('kb_PICRUSt2.util.report.var', values={'warnings': []})
     def test_large_heatmap(self):
         '''
-        Test largest possible heatmap
         '''
         logging.info('Testing with test_large_heatmap')
 
@@ -591,12 +624,10 @@ class kb_PICRUSt2Test(unittest.TestCase):
     @patch('kb_PICRUSt2.kb_PICRUSt2Impl.DataFileUtil', new=lambda *a: get_mock_dfu('enigma17770by511'))
     @patch('kb_PICRUSt2.kb_PICRUSt2Impl.GenericsAPI', new=lambda *a, **k: get_mock_gapi('enigma17770by511'))
     @patch('kb_PICRUSt2.kb_PICRUSt2Impl.run_check', new=get_mock_run_check('enigma17770by511'))
-    @patch('kb_PICRUSt2.kb_PICRUSt2Impl.FunctionalProfileUtil', new=lambda *a, **k: get_mock_fpu(''))
+    #@patch('kb_PICRUSt2.kb_PICRUSt2Impl.FunctionalProfileUtil', new=lambda *a, **k: get_mock_fpu(''))
     @patch_('kb_PICRUSt2.kb_PICRUSt2Impl.KBaseReport', new=lambda *a, **k: get_mock_kbr())
     def test_large_dataset(self):
         '''
-        Unfortunately you should normally test FPU here
-        This is NOT fast due to primarily ? and FPU
         '''
 
         ret = self.serviceImpl.run_picrust2_pipeline(
@@ -728,6 +759,7 @@ integration_tests = [
     'test_large_dataset',
 ]
 unit_tests = [
+    'test_AmpliconMatrix_validation',
     'test_run_check', 'test_OutfileWrangler', 
     'test_AmpliconMatrix', 'test_AttributeMapping',
     'test_report', 'test_large_heatmap', 'test_small_heatmap',
@@ -736,10 +768,7 @@ large_tests = [
     'test_large_dataset', 'test_large_heatmap',
 ]
 run_tests = [
-    'test_has_no_row_AttributeMapping',
-]
-norun_tests = [
-    'test_large_dataset',
+    'test_AmpliconMatrix_validation',
 ]
 
 for key, value in kb_PICRUSt2Test.__dict__.copy().items():
