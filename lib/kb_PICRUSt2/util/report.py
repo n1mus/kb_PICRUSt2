@@ -205,7 +205,7 @@ class HTMLReportWriter:
             return '/'.join(flpth.split('/')[-2:])
 
         # build replacement string
-        txt = '<p><i>Heatmaps are restricted by top %d vector sums per dimension. See returned files for full TSVs.</i></p>' % MAX_LEN 
+        txt = '<p><i>Heatmaps are restricted by top %d vector L1 norms per dimension. See returned files for full TSVs.</i></p>' % MAX_LEN 
         txt += '<div id="imgLink">\n'
         for png_flpth, html_flpth in zip(png_flpth_l, html_flpth_l):
             txt += '<p><a href="%s" target="_blank"><img alt="%s" src="%s" title="Open to interact"></a></p>\n' % (

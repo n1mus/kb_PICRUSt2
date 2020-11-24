@@ -32,7 +32,7 @@ RUN apt-get install --yes vim
 
 RUN pip install -U kaleido
 
-RUN pip install numpy==1.19.2
+RUN pip install numpy==1.19.2 # this version produces no warnings in this context
 
 ENV PYTHONTRACEMALLOC=1
 

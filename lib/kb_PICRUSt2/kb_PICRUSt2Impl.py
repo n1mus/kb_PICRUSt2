@@ -183,7 +183,7 @@ class kb_PICRUSt2:
 
         # validate input data
 
-        amp_mat.validate_seq_abundance_data()
+        amp_mat.validate_amplicon_abundance_data()
 
 
         # generate input files
@@ -329,8 +329,7 @@ class kb_PICRUSt2:
         else:
             FP_amp_mat_ref = amp_mat_upa_new # this AmpliconMatrix is new one with new AttributeMapping
 
-
-        ## Community FPs
+        """
         if params.getd('create_sample_fps') is True and 'sample_set_ref' not in amp_mat.obj: # TODO why?
             msg = (
                 'Sorry, input AmpliconMatrix %s does not have a SampleSet reference '
@@ -340,8 +339,10 @@ class kb_PICRUSt2:
             )
             logging.warning(msg)
             var.warnings.append(msg)
-        
-        elif params.getd('create_sample_fps') is True and 'sample_set_ref' in amp_mat.obj:
+        """
+
+        ## Community FPs
+        if params.getd('create_sample_fps') is True :
 
             # Check nothing dropped (debug)
             for tsv_flpth in tsv_flpth_l[:3]:

@@ -2,12 +2,18 @@ from dotmap import DotMap
 
 _config = DotMap({
     'debug': True, # toggle for app-global debug behavior
+
+#-------- my file stuff -------------------------------------------------------------------------------    
+
     'amplicon_header_name': 'Amplicon_Id', # amplicon index/header name for tables and TSV
+
+#-------- PICRUSt2 files ---------------------------------------------------------------------------
+
     'metacyc_pathway_code2desc_tsvgz': 
         '/miniconda/envs/picrust2/lib/python3.6/site-packages/picrust2/default_files/description_mapfiles/metacyc_pathways_info.txt.gz', 
     'picrust2_pipeline_flpth': '/miniconda/envs/picrust2/bin/picrust2_pipeline.py',
 
-    #--- these file names/paths should all be in corresponding order ---
+#-------- these file names/paths should all be in corresponding order ------------------------------
 
     'tsvgzRelFlpth2TsvFlnm': {
         'pathways_out/path_abun_unstrat.tsv.gz': 'path_abun_unstrat.tsv', # func x sample

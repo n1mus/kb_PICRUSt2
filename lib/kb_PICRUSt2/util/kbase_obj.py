@@ -11,6 +11,7 @@ import functools
 from .dprint import dprint
 from .config import var
 from .error import * # custom Exceptions
+from .validate import Validate as vd
 
 
 pd.set_option('display.max_rows', 100)
@@ -18,84 +19,6 @@ pd.set_option('display.max_columns', 50)
 pd.set_option('display.width', 1000)
 pd.set_option('display.max_colwidth', 20)
 
-
-####################################################################################################
-####################################################################################################
-MISSING_VALS = [None, '', 'nan', 'None', 'null', np.nan] # Below functions should implicitly handle these missing values
-
-####################################################################################################
-####################################################################################################
-def replace_missing(a: np.ndarray, rep=np.nan):
-    '''
-    Use np.ndarray because
-    (1) Easier to detect `None`
-    (2) Common denominator
-    '''    
-    if np.issubdtype(a.dtype, int) and rep in [np.nan, None]:
-        raise Exception('Cannot assign special missing values to numpy integer array')
-
-    for missing in MISSING_VALS:
-        """
-        dprint( 
-                'missing',
-                'type(missing)',
-                'a', 
-                'a.dtype', 
-                'a == np.array(missing, dtype=object)', 
-                run={**globals(),**locals()}
-                )
-        """
-        try:
-            a[a == np.array(missing, dtype=object)] = rep
-        except:
-            raise Exception(missing)
-
-    return a
-
-####################################################################################################
-####################################################################################################
-def get_num_missing(a: np.ndarray):
-    num = 0
-    for missing in MISSING_VALS:
-        
-        """
-        dprint( 
-                'missing',
-                'type(missing)',
-                'a', 
-                'a.dtype', 
-                'a == np.array(missing, dtype=object)', 
-                run={**globals(),**locals()}
-                )
-        """
-        
-        num = num + (a == np.array(missing, dtype=object)).sum() # cast missing as obj np.array to get element-wise comparison
-    
-    return num
-
-
-####################################################################################################
-####################################################################################################
-def as_numeric(a: np.ndarray, rep=np.nan, dtype=float):
-    '''
-    Warning: NumPy integer arrays do not support missing values (np.nan etc.)
-    '''
-
-    if np.issubdtype(dtype, int) and rep in [np.nan, None]:
-        raise Exception('Cannot assign special missing values to numpy integer array')
-
-    if np.issubdtype(a.dtype, int) and rep in [np.nan, None]:
-        a = a.astype(float) # cast to float first to allow assigning special values
-
-    a = replace_missing(a)
-
-    try:
-        a = a.astype(dtype)
-        return a
-    except ValueError:
-        return None
-
-    raise
 
 
 ####################################################################################################
@@ -126,18 +49,27 @@ class AmpliconMatrix:
 
     def to_seq_abundance_table(self, flpth):
         '''
-        Prerequisite: validate first with `validate_seq_abundance_data`
+        Prerequisite: validate first with `validate_amplicon_abundance_data`
         '''
         logging.info(f"Writing sequence abundance table to %s" % flpth)
 
-        data = as_numeric(np.array(self.obj['data']['values']), rep=np.nan, dtype=float) # Rep as floats so you can accept any numeric/missing then write with %g 
-                                                                # np integer arrays don't take missing values
+        def copy_replace(nested: list, rep=None):
+            nested_ = []
+            for l in nested:
+                l_ = l.copy()
+                nested_.append(l_)
+                for i, e in enumerate(l_):
+                    if e == '':
+                        l_[i] = None
+            return nested_
+
+        data = np.array(copy_replace(self.obj['data']['values']), dtype=float) 
         row_ids = self.obj['data']['row_ids']
         col_ids = self.obj['data']['col_ids']
 
         data = pd.DataFrame(
             data, 
-            index=row_ids, # ASV Ids 
+            index=row_ids, # Amplicon Ids 
             columns=col_ids # sample names
             )
         data.index.name = var.amplicon_header_name
@@ -147,53 +79,37 @@ class AmpliconMatrix:
         fetched_flpth = var.gapi.fetch_sequence(self.upa)
         shutil.copyfile(fetched_flpth, flpth)
 
-
-    def validate_seq_abundance_data(self):
+    def validate_amplicon_abundance_data(self):
         '''
         Can't be all missing
         Should be count data, missing allowed
 
+        Data already restricted to int, float, None
         Because of KBase float types, which this is composed of,
         don't have to worry about complex, inf, etc.
         '''
         a = np.array(self.obj['data']['values'])
 
         # Can't be all missing
-        if get_num_missing(a) == a.size:
+        if vd.get_num_missing(a) == a.size:
             raise ValidationException(
-                'Input AmpliconMatrix cannot be all missing values'
+                'Input AmpliconMatrix cannot have all missing matrix values'
             )
 
-        a = as_numeric(a, rep=np.nan, dtype=float) # cast as float because that can pick up float-like strings like '1.0'
+        a = vd.as_numeric(a, dtype=float) # casting as int will truncate floats into ints
 
         base_msg = (
-            'Input AmpliconMatrix must have count data (missing values allowed). '
+            'Input AmpliconMatrix must have count data (missing values allowed) in matrix. '
         )
-
-        # Numeric, missing allowed
-        if a is None:
-            raise ValidationException(
-                base_msg + 'Non-numeric detected'
-            )
-
-        #dprint('a', 'a.dtype', 'as_numeric(a, dtype=float)', run={**globals(), **locals()})
 
         # Integer
-        allclose_ = functools.partial(
-            np.allclose, 
-            equal_nan=True, # NaNs equal 
-            atol=1e-8, # same
-            rtol=1e-8, # decrease otherwise 4.00001 == 4
-        )
-        a_round = np.round(a)
-        if not allclose_(a, a_round) or not allclose_(a_round, a):
-            #dprint('a', 'a_round', 'allclose_(a, a_round)', 'allclose_(a_round, a)', run={**globals(), **locals()})
+        if not vd.is_int_like(a):
             raise ValidationException(
-                base_msg + 'Non-integer detected after attemping to round/truncate'
+                base_msg + 'Non-integer detected'
             )
 
         # Gte 0
-        if np.any(a_round < 0):
+        if np.any(np.round(a) < 0): # allow for small negative deltas
             raise ValidationException(
                 base_msg + 'Negative value detected'
             )

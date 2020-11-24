@@ -69,6 +69,14 @@ description : |
     </p>
 
     <p>
+    PICRUSt2 may drop amplicons, accounting for dissimilarity to its reference genomes, at two steps.
+    (1) When aligning the 16S sequences to the reference sequences before building a tree,
+    and thus before any tables are output, amplicons can be dropped for poor alignment.
+    (2) Before calculating the community functional abundance matrices, any sequence that is
+    above a distance criterion from the reference sequences in the tree is dropped.
+    </p>
+
+    <p>
     Can generate three new community <code>FunctionalProfile</code>s and three new organism <code>FunctionalProfile</code>s;
     three because one for each of PICRUSt2's predicted EC, KO, and MetaCyc functions. 
     </p>
@@ -77,9 +85,6 @@ description : |
     For the heatmaps, <code>EC_metagenome_out/pred_metagenome_unstrat.tsv</code> and 
     <code>KO_metagenome_out/pred_metagenome_unstrat.tsv</code> are renamed to <code>EC_pred_metagenome_unstrat.tsv</code> and
     <code>KO_pred_metagenome_unstrat.tsv</code>, respectively
-    </p>
-
-    <p>
     The heatmaps can be very large and sparse, which can make them uninformative and difficult to display.
     A somewhat arbitrary filtering technique is adopted: 
     the 2800 rows or columns with the largest sums (or L1 norms in this case) are retained. 

@@ -159,62 +159,59 @@ class kb_PICRUSt2Test(unittest.TestCase):
         
         logging.info('Testing with test_AmpliconMatrix_validation')
 
-        amp_mat = AmpliconMatrix(dummy_10by8_AmpMat)
-        amp_mat.validate_seq_abundance_data()
+        amp_mat = AmpliconMatrix(dummy_10by8_AmpMat) # these values have been truncated to ints
+        amp_mat.validate_amplicon_abundance_data()
 
         amp_mat.obj['data']['values'] = [0.0, 0.0, 1319.0, 1.0] # float
-        amp_mat.validate_seq_abundance_data()
+        amp_mat.validate_amplicon_abundance_data()
 
         amp_mat.obj['data']['values'] = [0, 0, 1319, 1] # int
-        amp_mat.validate_seq_abundance_data()
+        amp_mat.validate_amplicon_abundance_data()
 
         amp_mat.obj['data']['values'] = [None, 0., 0., 1319., 1.] # float, with missing
-        amp_mat.validate_seq_abundance_data()
+        amp_mat.validate_amplicon_abundance_data()
 
         amp_mat.obj['data']['values'] = [None, 0, 0, 1319, 1] # int, with missing
-        amp_mat.validate_seq_abundance_data()
+        amp_mat.validate_amplicon_abundance_data()
 
         amp_mat.obj['data']['values'] = [None, 0, -0., 1319.0, 1] # int/float, with missing
-        amp_mat.validate_seq_abundance_data()
+        amp_mat.validate_amplicon_abundance_data()
 
         amp_mat.obj['data']['values'] = [None, None, 0, -0, 0.0, 0, 0.] # 0s, with missing
-        amp_mat.validate_seq_abundance_data()
+        amp_mat.validate_amplicon_abundance_data()
 
         amp_mat.obj['data']['values'] = [None, 0.999999999] # close enough
-        amp_mat.validate_seq_abundance_data() 
+        amp_mat.validate_amplicon_abundance_data() 
 
         amp_mat.obj['data']['values'] = [None, -0.0000000001] # close enough
-        amp_mat.validate_seq_abundance_data() 
+        amp_mat.validate_amplicon_abundance_data() 
 
         amp_mat.obj['data']['values'] = [0.9]
-        with self.assertRaises(ValidationException): amp_mat.validate_seq_abundance_data() 
+        with self.assertRaises(ValidationException): amp_mat.validate_amplicon_abundance_data() 
 
         amp_mat.obj['data']['values'] = [-1]
-        with self.assertRaises(ValidationException): amp_mat.validate_seq_abundance_data() 
+        with self.assertRaises(ValidationException): amp_mat.validate_amplicon_abundance_data() 
 
         amp_mat.obj['data']['values'] = [None, None, None]
-        with self.assertRaises(ValidationException): amp_mat.validate_seq_abundance_data() 
+        with self.assertRaises(ValidationException): amp_mat.validate_amplicon_abundance_data() 
 
         amp_mat.obj['data']['values'] = [None]
-        with self.assertRaises(ValidationException): amp_mat.validate_seq_abundance_data()
+        with self.assertRaises(ValidationException): amp_mat.validate_amplicon_abundance_data()
 
         amp_mat.obj['data']['values'] = [None, -1]
-        with self.assertRaises(ValidationException): amp_mat.validate_seq_abundance_data()
+        with self.assertRaises(ValidationException): amp_mat.validate_amplicon_abundance_data()
 
         amp_mat.obj['data']['values'] = [None, None, 1.00001]
-        with self.assertRaises(ValidationException): amp_mat.validate_seq_abundance_data()
+        with self.assertRaises(ValidationException): amp_mat.validate_amplicon_abundance_data()
 
         amp_mat.obj['data']['values'] = [-1.0, 0, 1319]
-        with self.assertRaises(ValidationException): amp_mat.validate_seq_abundance_data()
+        with self.assertRaises(ValidationException): amp_mat.validate_amplicon_abundance_data()
 
         amp_mat.obj['data']['values'] = [None, 0, 1, 2, 3, 4.5]
-        with self.assertRaises(ValidationException): amp_mat.validate_seq_abundance_data()
+        with self.assertRaises(ValidationException): amp_mat.validate_amplicon_abundance_data()
 
         amp_mat.obj['data']['values'] = [None, 0.0, 1.0, 2.0, 3.0, 4.00001] # 4.00001 would pass with np.allclose default rtol
-        with self.assertRaises(ValidationException): amp_mat.validate_seq_abundance_data()
-
-
-
+        with self.assertRaises(ValidationException): amp_mat.validate_amplicon_abundance_data()
 
 
 
@@ -525,8 +522,8 @@ class kb_PICRUSt2Test(unittest.TestCase):
     @patch_('kb_PICRUSt2.kb_PICRUSt2Impl.KBaseReport', new=lambda *args, **kwargs: get_mock_kbr())
     def test_has_no_row_AttributeMapping(self):
         '''
-        No taxonomy doesn't actually matter here
-        The naming is just being consistent with kb_faprotax
+        Will not update/create row AttributeMapping if already none
+        Default is to create all the FPs
         '''
         ret = self.serviceImpl.run_picrust2_pipeline(
             self.ctx, {
@@ -535,8 +532,8 @@ class kb_PICRUSt2Test(unittest.TestCase):
                 'output_name': 'an_output_name',
             }
         )
-
-        self.assertTrue(len(var.objects_created) == 3, var.objects_created)
+        
+        self.assertTrue(len(var.objects_created) == 6, var.objects_created)
 
     ####################
     ####################
@@ -545,7 +542,7 @@ class kb_PICRUSt2Test(unittest.TestCase):
     @patch('kb_PICRUSt2.kb_PICRUSt2Impl.run_check', new=get_mock_run_check('enigma50by30'))
     @patch_('kb_PICRUSt2.kb_PICRUSt2Impl.FunctionalProfileUtil', new=lambda *a, **k: get_mock_fpu(''))
     @patch_('kb_PICRUSt2.kb_PICRUSt2Impl.KBaseReport', new=lambda *a, **k: get_mock_kbr())
-    def test_FP_options_wSampleSet(self):
+    def test_FP_options(self):
         '''
         Creating amplicon FPs logic is independent of creating sample FPs logic
         '''
@@ -582,49 +579,10 @@ class kb_PICRUSt2Test(unittest.TestCase):
 
     ####################
     ####################
-    @patch_('kb_PICRUSt2.kb_PICRUSt2Impl.DataFileUtil', new=lambda *args: get_mock_dfu('enigma50by30_noAttrMaps_noSampleSet'))
-    @patch_('kb_PICRUSt2.kb_PICRUSt2Impl.GenericsAPI', new=lambda *a, **k: get_mock_gapi('enigma50by30_noAttrMaps_noSampleSet'))
-    @patch('kb_PICRUSt2.kb_PICRUSt2Impl.run_check', new=get_mock_run_check('enigma50by30_noAttrMaps_noSampleSet'))
-    @patch_('kb_PICRUSt2.kb_PICRUSt2Impl.FunctionalProfileUtil', new=lambda *a, **k: get_mock_fpu(''))
-    @patch_('kb_PICRUSt2.kb_PICRUSt2Impl.KBaseReport', new=lambda *args, **kwargs: get_mock_kbr())
-    def test_FP_options_noSampleSet(self):
-
-        with self.subTest():
-            ret = self.serviceImpl.run_picrust2_pipeline(
-                self.ctx, {
-                    **self.params_ws,
-                    'amplicon_matrix_upa': enigma50by30_noAttrMaps_noSampleSet,
-                    'fp_options': {
-                        'create_amplicon_fps': False,
-                        'create_sample_fps': False,
-                    }
-                }
-            )
-
-            self.assertTrue(len(var.objects_created) == 0, var.objects_created) 
-
-        with self.subTest():
-            ret = self.serviceImpl.run_picrust2_pipeline(
-                self.ctx, {
-                    **self.params_ws,
-                    'amplicon_matrix_upa': enigma50by30_noAttrMaps_noSampleSet,
-                    'fp_options': {
-                        'create_amplicon_fps': False,
-                        'create_sample_fps': True,
-                    }
-                }
-            )
-
-            self.assertTrue(len(var.objects_created) == 0, var.objects_created) 
-
-
-
-    ####################
-    ####################
     @patch('kb_PICRUSt2.kb_PICRUSt2Impl.DataFileUtil', new=lambda *a: get_mock_dfu('enigma17770by511'))
     @patch('kb_PICRUSt2.kb_PICRUSt2Impl.GenericsAPI', new=lambda *a, **k: get_mock_gapi('enigma17770by511'))
     @patch('kb_PICRUSt2.kb_PICRUSt2Impl.run_check', new=get_mock_run_check('enigma17770by511'))
-    #@patch('kb_PICRUSt2.kb_PICRUSt2Impl.FunctionalProfileUtil', new=lambda *a, **k: get_mock_fpu(''))
+    @patch('kb_PICRUSt2.kb_PICRUSt2Impl.FunctionalProfileUtil', new=lambda *a, **k: get_mock_fpu(''))
     @patch_('kb_PICRUSt2.kb_PICRUSt2Impl.KBaseReport', new=lambda *a, **k: get_mock_kbr())
     def test_large_dataset(self):
         '''
@@ -650,39 +608,6 @@ class kb_PICRUSt2Test(unittest.TestCase):
 #!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 #!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 #!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-
-    """
-    #####
-    #####
-    def setUp(self):
-        self.snapshot1 = tracemalloc.take_snapshot()
-        top_stats = self.snapshot1.statistics('lineno')
-
-        print("[ Top 10 ]")
-        for stat in top_stats[:10]:
-            print(stat)
-
-    #####
-    #####
-    def tearDown(self):
-        snapshot2 = tracemalloc.take_snapshot()
-
-        ##
-        top_stats = snapshot2.compare_to(self.snapshot1, 'lineno')
-
-        print("[ Top 10 differences ]")
-        for stat in top_stats[:10]:
-            print(stat)
-
-        ##
-        top_stats = snapshot2.statistics('traceback')
-
-        # pick the biggest memory block
-        stat = top_stats[0]
-        print("%s memory blocks: %.1f KiB" % (stat.count, stat.size / 1024))
-        for line in stat.traceback.format():
-            print(line)
-    """
 
     #####
     #####
@@ -734,9 +659,12 @@ class kb_PICRUSt2Test(unittest.TestCase):
         if hasattr(cls, 'wsName'):
             cls.wsClient.delete_workspace({'workspace': cls.wsName})
             print('Test workspace was deleted')
-        print('Tests run:', cls.list_tests())
         dec = '!!!' * 300
         print(dec, "DON'T FORGET TO SEE HTML(S)", dec)
+        skipped_tests = list(set(all_tests) - set(cls.list_tests()))
+        print('* All tests (%d): %s' % (len(all_tests), all_tests))
+        print('* Tests skipped (%d): %s' % (len(skipped_tests), skipped_tests))
+        print('* Tests run (%d): %s' % (len(cls.list_tests()), cls.list_tests()))
 
     def shortDescription(self):
         '''Override unittest using test*() docstrings in lieu of test*() method name in output summary'''
@@ -747,6 +675,10 @@ class kb_PICRUSt2Test(unittest.TestCase):
 #!!!!!!!!!!!!!!!!!!!!!!!!!!! select what to run !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 #!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 #!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+all_tests = []
+for key, value in kb_PICRUSt2Test.__dict__.copy().items():
+    if key.startswith('test') and callable(value):
+        all_tests.append(key)
 '''
 When you just want to run certain tests,
 e.g., filter to tests in `run_tests`
@@ -755,7 +687,7 @@ Comment out parts like `delattr` to deactivate
 '''
 integration_tests = [
     'test_has_row_AttributeMapping_create_all', 'test_has_no_row_AttributeMapping',
-    'test_FP_options_wSampleSet', 'test_FP_options_noSampleSet',
+    'test_FP_options'
     'test_large_dataset',
 ]
 unit_tests = [
@@ -771,10 +703,9 @@ run_tests = [
     'test_AmpliconMatrix_validation',
 ]
 
-for key, value in kb_PICRUSt2Test.__dict__.copy().items():
-    if key.startswith('test') and callable(value):
-        if key not in run_tests:
-            #delattr(kb_PICRUSt2Test, key)
+for test in all_tests:
+        if test not in run_tests:
+            #delattr(kb_PICRUSt2Test, test)
             pass
 
 
