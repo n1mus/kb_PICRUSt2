@@ -1,4 +1,12 @@
 from dotmap import DotMap
+import pandas as pd
+
+
+pd.set_option('display.max_rows', 100)
+pd.set_option('display.max_columns', 50)
+pd.set_option('display.width', 1000)
+pd.set_option('display.max_colwidth', 20)
+
 
 _config = DotMap({
     'debug': True, # toggle for app-global debug behavior
@@ -40,6 +48,7 @@ _config = DotMap({
         'KO_predicted.tsv': ('amplicon ID', 'KO'), # amplicon x func
         #---
         'path_abun_unstrat.tsv.gz': ('MetaCyc pathway', 'sample ID'), # func x sample
+        'pred_metagenome_unstrat.tsv.gz': ('EC', 'sample ID'), # func x sample
         'EC_pred_metagenome_unstrat.tsv.gz': ('EC', 'sample ID'), # func x sample
         'KO_pred_metagenome_unstrat.tsv.gz': ('KO', 'sample ID'), # func x sample
         'path_abun_predictions.tsv.gz': ('amplicon ID', 'MetaCyc pathway'), # amplicon x func
@@ -49,11 +58,11 @@ _config = DotMap({
 
 })
 
-var = DotMap(_config) # app-wide globals container
+Var = DotMap(_config) # app-wide globals container
 
-def reset_var():
-    var.clear()
-    var.update(_config)
+def reset_Var():
+    Var.clear()
+    Var.update(_config)
 
 
 
@@ -62,11 +71,11 @@ def reset_var():
 '''
 TSVs are:
 
-'pathways_out/path_abun_unstrat.tsv', #* [most important] 1.2M
+'pathways_out/path_abun_unstrat.tsv', #* [most important to workflow] 1.2M
 'pathways_out/path_abun_unstrat_per_seq.tsv',
 'pathways_out/path_abun_predictions.tsv',
-'EC_predicted.tsv', #* [nice-to-have] 100M TODO
-'KO_predicted.tsv', #* [nice-to-have] 358M TODO
+'EC_predicted.tsv', #* [nice-to-have] 100M
+'KO_predicted.tsv', #* [nice-to-have] 358M
 'EC_metagenome/pred_metagenome_unstrat.tsv',
 'KO_metagenome/pred_metagenome_unstrat.tsv',
 '''

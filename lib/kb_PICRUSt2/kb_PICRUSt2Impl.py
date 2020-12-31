@@ -9,7 +9,6 @@ import uuid
 import functools
 import pandas as pd
 import numpy as np
-import gzip
 import shutil
 import json
 
@@ -18,48 +17,15 @@ from installed_clients.DataFileUtilClient import DataFileUtil
 from installed_clients.FunctionalProfileUtilClient import FunctionalProfileUtil
 from installed_clients.GenericsAPIClient import GenericsAPI
 
-from .util.kbase_obj import AmpliconMatrix, AttributeMapping
-from .util.outfile import OutfileWrangler
-from .util.error import *
-from .util.dprint import dprint
-from .util.config import var, reset_var
-from .util.report import HTMLReportWriter
-from .util.params import Params
+from .impl.kbase_obj import AmpliconMatrix, AttributeMapping
+from .impl import appfile
+from .impl.config import Var, reset_Var
+from .impl import report
+from .impl.params import Params
+from .util.debug import dprint
+from .util.cli import run_check, gunzip
 
 
-####################################################################################################
-####################################################################################################
-def run_check(cmd):
-    '''Wrap tool-running method for patching'''
-
-    logging.info(f'Running PICRUSt2 via command `{cmd}`')
-
-    t0 = time.time()
-    completed_proc = subprocess.run(cmd, shell=True, executable='/bin/bash', stdout=sys.stdout, stderr=sys.stdout)
-
-    logging.info('Completed in %.1f minutes' % ((time.time()-t0)/60))
-
-    if completed_proc.returncode != 0:
-        msg = (
-            "PICRUSt2 command `%s` returned with non-zero return code `%d`. "
-            "Please check logs for more details" % 
-            (cmd, completed_proc.returncode)
-        )
-        raise NonZeroReturnException(msg)
-
-####################################################################################################
-####################################################################################################
-
-def gunzip_to(read, write):
-    '''
-    Gunzip from `read` to `write`
-    '''
-    with gzip.open(read, 'rb') as fh_read:
-        with open(write, 'wb') as fh_write:
-            shutil.copyfileobj(fh_read, fh_write)
-
-####################################################################################################
-####################################################################################################
 #END_HEADER
 
 
@@ -109,7 +75,7 @@ class kb_PICRUSt2:
            "report_name" of String, parameter "report_ref" of String
         """
         # ctx is the context object
-        # return variables are: output
+        # return Variables are: output
         #BEGIN run_picrust2_pipeline
 ####################################################################################################
 ####################################################################################################
@@ -129,9 +95,9 @@ class kb_PICRUSt2:
 
         dprint('params', run=locals())
         
-        reset_var() # clear all fields but `debug`
+        reset_Var() # clear all fields but `debug`
 
-        var.update(
+        Var.update(
             params=params,
             dfu=DataFileUtil(self.callback_url),
             kbr=KBaseReport(self.callback_url),
@@ -143,16 +109,16 @@ class kb_PICRUSt2:
             objects_created=[],
         )
 
-        os.mkdir(var.run_dir) # for this API-method run
+        os.mkdir(Var.run_dir) # for this API-method run
 
-        var.update(
-            return_dir=os.path.join(var.run_dir, 'return'),
+        Var.update(
+            return_dir=os.path.join(Var.run_dir, 'return'),
         )
 
-        os.mkdir(var.return_dir) # for return input/output/logs etc.
+        os.mkdir(Var.return_dir) # for return input/output/logs etc.
 
-        if var.debug:
-            with open(os.path.join(var.run_dir, '#params'), 'w') as fh:
+        if Var.debug:
+            with open(os.path.join(Var.run_dir, '#params'), 'w') as fh:
                 json.dump(params.params, fh)
     
         # TODO document `run_dir` structure
@@ -177,7 +143,7 @@ class kb_PICRUSt2:
                 "then select it when importing the Amplicon Matrix"
             )
             logging.warning(msg)
-            var.warnings.append(msg)
+            Var.warnings.append(msg)
 
 
 
@@ -188,15 +154,15 @@ class kb_PICRUSt2:
 
         # generate input files
         
-        seq_flpth = os.path.join(var.return_dir, 'study_seqs.fna')
-        seq_abundance_table_flpth = os.path.join(var.return_dir, 'study_seqs.tsv') 
+        seq_flpth = os.path.join(Var.return_dir, 'study_seqs.fna')
+        seq_abundance_table_flpth = os.path.join(Var.return_dir, 'study_seqs.tsv') 
 
         amp_mat.to_fasta(seq_flpth)
         amp_mat.to_seq_abundance_table(seq_abundance_table_flpth)
 
 
         # objs should be app globals
-        var.amp_mat = amp_mat
+        Var.amp_mat = amp_mat
 
 
         #
@@ -206,8 +172,8 @@ class kb_PICRUSt2:
         #####
         
         
-        var.out_dir = os.path.join(var.return_dir, 'PICRUSt2_output')
-        log_flpth = os.path.join(var.return_dir, 'cmd_log.txt')
+        Var.out_dir = os.path.join(Var.return_dir, 'PICRUSt2_output')
+        log_flpth = os.path.join(Var.return_dir, 'cmd_log.txt')
 
 
         cmd_pipeline = ' '.join([
@@ -216,7 +182,7 @@ class kb_PICRUSt2:
             'picrust2_pipeline.py',
             '-s', seq_flpth,
             '-i', seq_abundance_table_flpth,
-            '-o', var.out_dir,
+            '-o', Var.out_dir,
             '--per_sequence_contrib',
             '-p 4',
             '|& tee', log_flpth,
@@ -225,7 +191,7 @@ class kb_PICRUSt2:
     
 
         cmd_description = ' \\\n'.join([
-            'cd %s &&' % var.out_dir,
+            'cd %s &&' % Var.out_dir,
             'source activate picrust2 &&',
             'add_descriptions.py -i EC_metagenome_out/pred_metagenome_unstrat.tsv.gz -m EC',
             '                    -o EC_metagenome_out/pred_metagenome_unstrat_descrip.tsv.gz',
@@ -258,7 +224,7 @@ class kb_PICRUSt2:
 
 
         path_abun_predictions_tsv_gz_flpth = os.path.join(
-            var.out_dir, 'pathways_out/path_abun_predictions.tsv.gz') 
+            Var.out_dir, 'pathways_out/path_abun_predictions.tsv.gz') 
 
         attribute = 'PICRUSt2 MetaCyc Pathway Predictions'
         source = 'kb_PICRUSt2/run_picrust2_pipeline'
@@ -268,8 +234,8 @@ class kb_PICRUSt2:
         if amp_mat.row_attrmap_upa is not None: 
 
             # update row AttributeMapping with traits
-            id2attr = OutfileWrangler.parse_picrust2_traits(path_abun_predictions_tsv_gz_flpth)
-            ind = row_attrmap.get_attribute_slot_warn(attribute, source)
+            id2attr = appfile.parse_picrust2_traits(path_abun_predictions_tsv_gz_flpth)
+            ind, overwrite = row_attrmap.get_add_attribute_slot(attribute, source)
             row_attrmap.map_update_attribute(ind, id2attr)
             row_attrmap_upa_new = row_attrmap.save()
 
@@ -277,9 +243,18 @@ class kb_PICRUSt2:
             amp_mat.obj['row_attributemapping_ref'] = row_attrmap_upa_new
             amp_mat_upa_new = amp_mat.save(name=params.getd('output_name'))         
 
-            var.objects_created.extend([
-                {'ref': row_attrmap_upa_new, 'description': 'Added or updated attribute `%s`' % attribute}, 
-                {'ref': amp_mat_upa_new, 'description': 'Updated row AttributeMapping reference'},
+            Var.objects_created.extend([
+                {
+                    'ref': row_attrmap_upa_new, 
+                    'description': '%s attribute `%s`' % (
+                        ('Overwrote' if overwrite else 'Updated'),
+                        attribute
+                    ),
+                }, 
+                {
+                    'ref': amp_mat_upa_new, 
+                    'description': 'Updated row AttributeMapping reference'
+                },
             ])
 
     
@@ -292,19 +267,19 @@ class kb_PICRUSt2:
         #####
 
 
-        tsv_dir = os.path.join(var.shared_folder, 'kbp2_decompressed_tsv_dir_' + str(uuid.uuid4()))
+        tsv_dir = os.path.join(Var.shared_folder, 'kbp2_decompressed_tsv_dir_' + str(uuid.uuid4()))
         os.mkdir(tsv_dir)
 
         logging.info('Preparing TSV directory %s' % tsv_dir)
 
-        dprint('touch %s' % os.path.join(tsv_dir, '#' + amp_mat.name)) # debug annotation
-        for tsvgz_relflpth, tsv_flnm in var.tsvgzRelFlpth2TsvFlnm.items(): # output dir to new dir
-            gunzip_to(
-                os.path.join(var.out_dir, tsvgz_relflpth),
+        dprint('touch %s' % os.path.join(tsv_dir, '#' + amp_mat.name), run='bash') # debug annotation
+        for tsvgz_relflpth, tsv_flnm in Var.tsvgzRelFlpth2TsvFlnm.items(): # output dir to new dir
+            gunzip(
+                os.path.join(Var.out_dir, tsvgz_relflpth),
                 os.path.join(tsv_dir, tsv_flnm)
             )
 
-        tsv_flpth_l = [os.path.join(tsv_dir, tsv_flnm) for tsv_flnm in var.tsvgzRelFlpth2TsvFlnm.values()] # new, decompressed TSVs
+        tsv_flpth_l = [os.path.join(tsv_dir, tsv_flnm) for tsv_flnm in Var.tsvgzRelFlpth2TsvFlnm.values()] # new, decompressed TSVs
         
 
         # look at TSVs 
@@ -324,34 +299,23 @@ class kb_PICRUSt2:
         logging.info('Starting FunctionalProfile business')
 
 
-        if var.debug:
+        if Var.debug:
             FP_amp_mat_ref = params['amplicon_matrix_upa']  # this makes mocking more flexible in case something makes a fake UPA
         else:
             FP_amp_mat_ref = amp_mat_upa_new # this AmpliconMatrix is new one with new AttributeMapping
 
-        """
-        if params.getd('create_sample_fps') is True and 'sample_set_ref' not in amp_mat.obj: # TODO why?
-            msg = (
-                'Sorry, input AmpliconMatrix %s does not have a SampleSet reference '
-                'and so creating community FunctionalProfiles is prohibited. '
-                'Please see importers to link a SampleSet'
-                % amp_mat.name
-            )
-            logging.warning(msg)
-            var.warnings.append(msg)
-        """
 
         ## Community FPs
         if params.getd('create_sample_fps') is True :
 
             # Check nothing dropped (debug)
             for tsv_flpth in tsv_flpth_l[:3]:
-                OutfileWrangler.check_dropped_sample_ids(tsv_flpth, amp_mat)
+                appfile.check_dropped_sample_ids(tsv_flpth, amp_mat)
 
 
-            var.objects_created.append(dict(
-                ref=var.fpu.import_func_profile(dict(
-                    workspace_id=var.params['workspace_id'],
+            Var.objects_created.append(dict(
+                ref=Var.fpu.import_func_profile(dict(
+                    workspace_id=Var.params['workspace_id'],
                     func_profile_obj_name='%s.PICRUSt2_path_abun_unstrat' % amp_mat.name,
                     original_matrix_ref=FP_amp_mat_ref,
                     profile_file_path=tsv_flpth_l[0],
@@ -364,9 +328,9 @@ class kb_PICRUSt2:
                 description='Pathway abundance, MetaCyc vs. sample',
             ))
 
-            var.objects_created.append(dict(
-                ref=var.fpu.import_func_profile(dict(
-                    workspace_id=var.params['workspace_id'],
+            Var.objects_created.append(dict(
+                ref=Var.fpu.import_func_profile(dict(
+                    workspace_id=Var.params['workspace_id'],
                     func_profile_obj_name='%s.PICRUSt2_EC_pred_metagenome_unstrat' % amp_mat.name,
                     original_matrix_ref=FP_amp_mat_ref,
                     profile_file_path=tsv_flpth_l[1],
@@ -379,9 +343,9 @@ class kb_PICRUSt2:
                 description='Gene family abundance, EC vs. sample',
             ))
 
-            var.objects_created.append(dict(
-                ref=var.fpu.import_func_profile(dict(
-                    workspace_id=var.params['workspace_id'],
+            Var.objects_created.append(dict(
+                ref=Var.fpu.import_func_profile(dict(
+                    workspace_id=Var.params['workspace_id'],
                     func_profile_obj_name='%s.PICRUSt2_KO_pred_metagenome_unstrat' % amp_mat.name,
                     original_matrix_ref=FP_amp_mat_ref,
                     profile_file_path=tsv_flpth_l[2],
@@ -400,11 +364,11 @@ class kb_PICRUSt2:
 
             # Check dropped amplicons are the unaligned/distant ones (debug)
             for tsv_flpth in tsv_flpth_l[3:]:
-                OutfileWrangler.check_dropped_amplicon_ids(tsv_flpth, amp_mat)
+                appfile.check_dropped_amplicon_ids(tsv_flpth, amp_mat)
 
-            var.objects_created.append(dict(
-                ref=var.fpu.import_func_profile(dict(
-                    workspace_id=var.params['workspace_id'],
+            Var.objects_created.append(dict(
+                ref=Var.fpu.import_func_profile(dict(
+                    workspace_id=Var.params['workspace_id'],
                     func_profile_obj_name='%s.PICRUSt2_path_abun_predictions' % amp_mat.name,
                     original_matrix_ref=FP_amp_mat_ref,
                     profile_file_path=tsv_flpth_l[3],
@@ -417,9 +381,9 @@ class kb_PICRUSt2:
                 description='Pathway abundance, amplicon vs. MetaCyc',
             ))
 
-            var.objects_created.append(dict(
-                ref=var.fpu.import_func_profile(dict(
-                    workspace_id=var.params['workspace_id'],
+            Var.objects_created.append(dict(
+                ref=Var.fpu.import_func_profile(dict(
+                    workspace_id=Var.params['workspace_id'],
                     func_profile_obj_name='%s.PICRUSt2_EC_predicted' % amp_mat.name,
                     original_matrix_ref=FP_amp_mat_ref,
                     profile_file_path=tsv_flpth_l[4],
@@ -432,9 +396,9 @@ class kb_PICRUSt2:
                 description='Gene family abundance, amplicon vs. EC',
             ))
      
-            var.objects_created.append(dict(
-                ref=var.fpu.import_func_profile(dict(
-                    workspace_id=var.params['workspace_id'],
+            Var.objects_created.append(dict(
+                ref=Var.fpu.import_func_profile(dict(
+                    workspace_id=Var.params['workspace_id'],
                     func_profile_obj_name='%s.PICRUSt2_KO_predicted' % amp_mat.name,
                     original_matrix_ref=FP_amp_mat_ref,
                     profile_file_path=tsv_flpth_l[5],
@@ -458,24 +422,33 @@ class kb_PICRUSt2:
 
         logging.info('Beginning report business')
 
+        tsvgz_flpth_l = [
+            os.path.join(Var.out_dir, tsvgz_relflpth) 
+            for tsvgz_relflpth in list(Var.tsvgzRelFlpth2TsvFlnm.keys())
+        ]
+        # reorder TSVs
+        p = [4,5,3,1,2,0]
+        dprint('tsvgz_flpth_l')
+        tsvgz_flpth_l = [tsvgz_flpth_l[i] for i in p]
+
 
         ##
         ## report
 
-        var.report_dir = os.path.join(var.run_dir, 'report')
+        Var.report_dir = os.path.join(Var.run_dir, 'report')
 
         t0 = time.time()
-        report_html_flpth = HTMLReportWriter(
-                [cmd_pipeline, cmd_description], 
-                tsv_flpth_l,
-                var.report_dir
+        report_html_flpth = report.HTMLReportWriter(
+            [cmd_pipeline, cmd_description], 
+            tsvgz_flpth_l,
+            Var.report_dir
         ).write()
         t = time.time() - t0
 
-        dprint('Done with all %d heatmaps and report. Took %.1f min' % (len(tsv_flpth_l), (t/60)))
+        dprint('Done with all %d heatmaps and report. Took %.1f min' % (len(tsv_flpth_l), (t/60)), run=None)
 
         html_links = [{
-            'path': var.report_dir,
+            'path': Var.report_dir,
             'name': os.path.basename(report_html_flpth),
         }]
 
@@ -489,28 +462,29 @@ class kb_PICRUSt2:
 
 
         file_links = [{
-                'path': var.return_dir, 
+                'path': Var.return_dir, 
                 'name': 'PICRUSt2_results.zip', 
                 'description': 'Input, output, cmd, intermediate files, log'
         }]
        
         params_report = {
-            'warnings': var.warnings,
-            'objects_created': var.objects_created,
+            'warnings': Var.warnings,
+            'objects_created': Var.objects_created,
             'file_links': file_links,
             'html_links': html_links,
             'direct_html_link_index': 0,
             'report_object_name': 'kb_PICRUSt2_report',
             'workspace_name': params['workspace_name'],
+            'html_window_height': report.REPORT_HEIGHT,
         }
 
-        var.params_report = params_report
+        Var.params_report = params_report
 
-        report = var.kbr.create_extended_report(params_report)
+        obj = Var.kbr.create_extended_report(params_report)
 
         output = {
-            'report_name': report['name'],
-            'report_ref': report['ref'],
+            'report_name': obj['name'],
+            'report_ref': obj['ref'],
         }
 
         #END run_picrust2_pipeline

@@ -34,7 +34,8 @@ RUN pip install -U kaleido
 
 RUN pip install numpy==1.19.2 # this version produces no warnings in this context
 
-ENV PYTHONTRACEMALLOC=1
+RUN pip install pipenv coverage pytest-cov python-coveralls flake8
+
 
 # -----------------------------------------
 

@@ -1,10 +1,10 @@
 #
 # define display information
 #
-name: PICRUSt2 Pipeline v2.3.0_b
+name: Predict prokaryote EC, KO, & MetaCyc function abundances with PICRUSt2 v2.3.0_b
 
 tooltip: |
-    Predict prokaryote EC, KO, and MetaCyc abundance from 16S amplicon matrix
+    Predict prokaryote EC, KO, & MetaCyc abundance from marker gene (e.g., 16S) sequence abundance matrices
 
 screenshots: []
 
@@ -55,8 +55,8 @@ parameter-groups:
 description : |
 
     <p>
-    Predicts EC, KO, and MetaCyc abundance per 16S gene or per sample, 
-    provided a 16S abundance table.
+    Predicts EC, KO, and MetaCyc abundance per prokaryotic marker gene (e.g. 16S) or per sample, 
+    provided a sequence abundance table.
     </p>
 
     <!--------------------------------------------------------------------------------------------->
@@ -70,7 +70,7 @@ description : |
 
     <p>
     PICRUSt2 may drop amplicons, accounting for dissimilarity to its reference genomes, at two steps.
-    (1) When aligning the 16S sequences to the reference sequences before building a tree,
+    (1) When aligning the marker gene sequences to the reference sequences before building a tree,
     and thus before any tables are output, amplicons can be dropped for poor alignment.
     (2) Before calculating the community functional abundance matrices, any sequence that is
     above a distance criterion from the reference sequences in the tree is dropped.
@@ -82,14 +82,8 @@ description : |
     </p>
 
     <p>
-    For the heatmaps, <code>EC_metagenome_out/pred_metagenome_unstrat.tsv</code> and 
-    <code>KO_metagenome_out/pred_metagenome_unstrat.tsv</code> are renamed to <code>EC_pred_metagenome_unstrat.tsv</code> and
-    <code>KO_pred_metagenome_unstrat.tsv</code>, respectively
-    The heatmaps can be very large and sparse, which can make them uninformative and difficult to display.
-    A somewhat arbitrary filtering technique is adopted: 
-    the 2800 rows or columns with the largest sums (or L1 norms in this case) are retained. 
-    2800 because 8M data points is a technical restraint.
-    </p>
+    Heatmaps
+    </p> 
 
     <!--------------------------------------------------------------------------------------------->
     <h3>Resources</h3>
@@ -101,11 +95,12 @@ description : |
 
     <p>
     Thanks to P. Weisenhorn for helpful comments and UI/behavior suggestions.
+    And thanks to the KBase team in general for their ideas and help.
     </p>
 
     <br><br>
 
-publications: # Is it weird/shady that I got most citations from the PICRUSt2 paper?
+publications: # got most citations from the PICRUSt2 paper
 
     -
         # PICRUSt2

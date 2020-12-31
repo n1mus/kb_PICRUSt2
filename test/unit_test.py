@@ -1,7 +1,3 @@
-# -*- coding: utf-8 -*-
-import os
-import time
-import logging
 import unittest
 from unittest.mock import patch
 from configparser import ConfigParser
@@ -16,87 +12,36 @@ from kb_PICRUSt2.kb_PICRUSt2Server import MethodContext
 from kb_PICRUSt2.authclient import KBaseAuth as _KBaseAuth
 from installed_clients.WorkspaceClient import Workspace
 
-from kb_PICRUSt2.kb_PICRUSt2Impl import kb_PICRUSt2, run_check
-from kb_PICRUSt2.util.outfile import OutfileWrangler
-from kb_PICRUSt2.util.config import var
-from kb_PICRUSt2.util.dprint import dprint
-from kb_PICRUSt2.util.kbase_obj import AmpliconMatrix, AttributeMapping
-from kb_PICRUSt2.util.report import do_heatmap, HTMLReportWriter
-from kb_PICRUSt2.util.error import *
-from util.mock import *
-from util.upa import *
-
-#tracemalloc.start(25)
-
-######################################
-######################################
-######### TOGGLE PATCH ###############
-######################################
-###################################### 
-do_patch =  True
-
-if do_patch:
-    patch_ = patch
-    patch_dict_ = patch.dict
-
-else:
-    patch_ = lambda *args, **kwargs: lambda f: f
-    patch_dict_ = lambda *args, **kwargs: lambda f: f
-######################################
-######################################
-######################################
-######################################
-
+from kb_PICRUSt2.kb_PICRUSt2Impl import kb_PICRUSt2 
+from kb_PICRUSt2.impl.kbase_obj import AmpliconMatrix, AttributeMapping
+from kb_PICRUSt2.impl import appfile
+from kb_PICRUSt2.impl.report import do_heatmap, HTMLReportWriter
+from kb_PICRUSt2.impl.config import Var
+from kb_PICRUSt2.impl.error import * # Exceptions
+from kb_PICRUSt2.util.debug import dprint
+from kb_PICRUSt2.util.validate import ValidationException
+from mock import *
 
 
 class kb_PICRUSt2Test(unittest.TestCase):
 
 ####################################################################################################
 ####################################################################################################
-############################# UNIT TESTS ###########################################################
-####################################################################################################
-####################################################################################################
-
-    ####################
-    ####################
-    def test_run_check(self):
-        '''
-        Test `run_check` which runs PICRUSt2 executable
-        ''' # TODO test return value of commands chained with &&
-        logging.info('Testing with test_run_check')
-
-        with self.assertRaises(NonZeroReturnException) as cm:
-            run_check('set -o pipefail && ;s |& tee tmp')
-            self.assertTrue('`2`') in str(cm.exception) # return code 2
-
-        with self.assertRaises(NonZeroReturnException) as cm:
-            run_check('set -o pipefail && tmp |& tee tmp')
-            self.assertTrue('`127`') in str(cm.exception) # return code 127
-
-        with self.assertRaises(NonZeroReturnException) as cm:
-            run_check('set -o pipefail && echo hi |& tmp')
-            self.assertTrue('`127`') in str(cm.exception) # return code 127
-
-        run_check('set -o pipefail && echo hi |& tee tmp') # run correctly
-
-
-    ####################
-    ####################
-    @patch.dict('kb_PICRUSt2.util.kbase_obj.var', values={'dfu': get_mock_dfu('dummy_10by8')})
-    def test_OutfileWrangler(self):
+    @patch.dict('kb_PICRUSt2.impl.kbase_obj.Var', values={'dfu': get_mock_dfu('dummy_10by8')})
+    def test_appfile(self):
         '''
         '''
-        logging.info('Testing with test_OutfileWrangler')
+        logging.info('Testing with test_appfile')
 
         run_dir = os.path.join('/kb/module/work/tmp', 'test_OutfileWranger_' + str(uuid.uuid4()))
         os.mkdir(run_dir)
 
-        ## Test `OutfileWrangler.parse_picrust2_traits` ##
-        with self.subTest('Test OutfileWrangler.parse_picrust2_traits'):
+        ## Test `appfile.parse_picrust2_traits` ##
+        with self.subTest('Test appfile.parse_picrust2_traits'):
         
             flpth = '/kb/module/test/data/by_dataset_input/dummy_10by8/return/PICRUSt2_output/pathways_out/path_abun_predictions.tsv.gz'
 
-            id2traits_d = OutfileWrangler.parse_picrust2_traits(flpth)
+            id2traits_d = appfile.parse_picrust2_traits(flpth)
 
             ans = {
                "amplicon_id_0": "N10-formyl-tetrahydrofolate biosynthesis,4-hydroxyphenylacetate degradation,aerobactin biosynthesis,superpathway of chorismate metabolism,homolactic fermentation",
@@ -115,9 +60,9 @@ class kb_PICRUSt2Test(unittest.TestCase):
 
 
 
-    ####################
-    ####################
-    @patch.dict('kb_PICRUSt2.util.kbase_obj.var', values={'dfu': get_mock_dfu('dummy_10by8')})
+####################################################################################################
+####################################################################################################
+    @patch.dict('kb_PICRUSt2.impl.kbase_obj.Var', values={'dfu': get_mock_dfu('dummy_10by8')})
     def test_AmpliconMatrix(self):
         '''
         Combine AmpliconSet and AmpliconMatrix since they mostly write input files
@@ -125,15 +70,15 @@ class kb_PICRUSt2Test(unittest.TestCase):
         logging.info('Testing with test_AmpliconMatrix')
 
         # set up `run_dir`
-        var.run_dir = os.path.join(self.shared_folder, 'test_AmpliconMatrix_' + str(uuid.uuid4()))
-        os.mkdir(var.run_dir)
+        Var.run_dir = os.path.join(self.shared_folder, 'test_AmpliconMatrix_' + str(uuid.uuid4()))
+        os.mkdir(Var.run_dir)
 
         amp_mat = AmpliconMatrix(dummy_10by8_AmpMat)
 
         # write
 
-        seq_flpth = os.path.join(var.run_dir, 'study_seqs.fna')
-        seq_abundance_table_flpth = os.path.join(var.run_dir, 'study_seqs.tsv')
+        seq_flpth = os.path.join(Var.run_dir, 'study_seqs.fna')
+        seq_abundance_table_flpth = os.path.join(Var.run_dir, 'study_seqs.tsv')
 
         amp_mat.to_seq_abundance_table(seq_abundance_table_flpth)
 
@@ -147,9 +92,9 @@ class kb_PICRUSt2Test(unittest.TestCase):
                 self.assertTrue(f1.read() == f2.read())
 
     
-    ####################
-    ####################
-    @patch.dict('kb_PICRUSt2.util.kbase_obj.var', values={'dfu': get_mock_dfu('dummy_10by8')})
+####################################################################################################
+####################################################################################################
+    @patch.dict('kb_PICRUSt2.impl.kbase_obj.Var', values={'dfu': get_mock_dfu('dummy_10by8')})
     def test_AmpliconMatrix_validation(self):
         '''
         Test validation of amplicon table in AmpliconMatrix
@@ -216,9 +161,9 @@ class kb_PICRUSt2Test(unittest.TestCase):
 
 
 
-    ####################
-    ####################
-    @patch.dict('kb_PICRUSt2.util.kbase_obj.var', values={'dfu': get_mock_dfu('dummy_10by8'), 'warnings': []})
+####################################################################################################
+####################################################################################################
+    @patch.dict('kb_PICRUSt2.impl.kbase_obj.Var', values={'dfu': get_mock_dfu('dummy_10by8'), 'warnings': []})
     def test_AttributeMapping(self):
         '''
         Mostly writing attributes
@@ -232,9 +177,9 @@ class kb_PICRUSt2Test(unittest.TestCase):
 
         ##
         ## write new attribute/source
-        ind_0 = attr_map.get_attribute_slot_warn('biome', 'testing')
+        ind_0, overwrite = attr_map.get_add_attribute_slot('biome', 'testing')
         self.assertTrue(ind_0 == 2)
-        self.assertTrue(len(var.warnings) == 0)
+        self.assertTrue(overwrite is False)
 
         attr_map.map_update_attribute(ind_0, {
             "amplicon_id_0": "dummy0",
@@ -253,9 +198,9 @@ class kb_PICRUSt2Test(unittest.TestCase):
 
         ##
         ## overwrite attribute/source
-        ind_1 = attr_map.get_attribute_slot_warn('celestial body', 'upload')
+        ind_1, overwrite = attr_map.get_add_attribute_slot('celestial body', 'upload')
         self.assertTrue(ind_1 == 0)
-        self.assertTrue(len(var.warnings) == 1)
+        self.assertTrue(overwrite is True)
 
         attr_map.map_update_attribute(ind_1, {
             "amplicon_id_0": "dummy1",
@@ -285,9 +230,9 @@ class kb_PICRUSt2Test(unittest.TestCase):
                 self.assertTrue('dummy' not in attr_l[ind])
 
 
-    ####################
-    ####################
-    @patch.dict('kb_PICRUSt2.util.report.var', values={'warnings': []})
+####################################################################################################
+####################################################################################################
+    @patch.dict('kb_PICRUSt2.impl.report.Var', values={'warnings': []})
     def test_large_heatmap(self):
         '''
         '''
@@ -319,18 +264,17 @@ class kb_PICRUSt2Test(unittest.TestCase):
         os.makedirs(fig_dir)
 
         tsvgz_flpth = os.path.join(report_dir, 'random.tsv.gz')
-        png_flpth = os.path.join(fig_dir, 'heatmap_random.png')
         html_flpth = os.path.join(report_dir, 'heatmap_random.html')
 
         write_random_tsv(tsvgz_flpth, dim=7000, max=1500)
 
-        do_heatmap(tsvgz_flpth, png_flpth, html_flpth)
+        do_heatmap(tsvgz_flpth, html_flpth)
 
 
 
-    ####################
-    ####################
-    @patch.dict('kb_PICRUSt2.util.report.var', values={'warnings': []})
+####################################################################################################
+####################################################################################################
+    @patch.dict('kb_PICRUSt2.impl.report.Var', values={'warnings': []})
     def test_report(self):
         '''
         Should make 6 `report_dir_*` subdirectories, 
@@ -369,10 +313,9 @@ class kb_PICRUSt2Test(unittest.TestCase):
             os.makedirs(fig_dir)
 
             tsvgz_flpth_enigma17770by511 = '/kb/module/test/data/by_dataset_input/enigma17770by511/return/PICRUSt2_output/pathways_out/path_abun_unstrat.tsv.gz'
-            png_flpth = os.path.join(fig_dir, 'heatmap_enigma17770by511.png')
             html_flpth = os.path.join(report_dir, 'heatmap_enigma17770by511.html')
 
-            do_heatmap(tsvgz_flpth_enigma17770by511, png_flpth, html_flpth)
+            do_heatmap(tsvgz_flpth_enigma17770by511, html_flpth)
 
             self.assertTrue(has_n_htmls(report_dir, 1))
 
@@ -386,10 +329,9 @@ class kb_PICRUSt2Test(unittest.TestCase):
             os.makedirs(fig_dir)
 
             tsvgz_flpth_enigma50by30 = '/kb/module/test/data/by_dataset_input/enigma50by30/return/PICRUSt2_output/pathways_out/path_abun_unstrat.tsv.gz'
-            png_flpth = os.path.join(fig_dir, 'heatmap_enigma50by30.png')
             html_flpth = os.path.join(report_dir, 'heatmap_enigma50by30.html')
 
-            do_heatmap(tsvgz_flpth_enigma50by30, png_flpth, html_flpth)
+            do_heatmap(tsvgz_flpth_enigma50by30, html_flpth)
 
             self.assertTrue(has_n_htmls(report_dir, 1))
 
@@ -403,12 +345,11 @@ class kb_PICRUSt2Test(unittest.TestCase):
             os.makedirs(fig_dir)
 
             tsvgz_flpth_random = os.path.join(report_dir, 'random.tsv.gz')
-            png_flpth = os.path.join(fig_dir, 'heatmap_random.png')
             html_flpth = os.path.join(report_dir, 'heatmap_random.html')
 
             write_random_tsv(tsvgz_flpth_random, dim=2000, max=100)
 
-            do_heatmap(tsvgz_flpth_random, png_flpth, html_flpth)
+            do_heatmap(tsvgz_flpth_random, html_flpth)
 
             self.assertTrue(has_n_htmls(report_dir, 1))
 
@@ -420,8 +361,7 @@ class kb_PICRUSt2Test(unittest.TestCase):
             cmd_l = ['wingardium leviosa']
 
             tsvgz_flpth_l = [
-                    tsvgz_flpth_enigma17770by511,
-
+                tsvgz_flpth_enigma17770by511,
             ]
 
             report_dir = os.path.join(run_dir, 'report_HTMLReportWriter_1heatmap')
@@ -443,31 +383,22 @@ class kb_PICRUSt2Test(unittest.TestCase):
             # copy tsvgzs into `report_dir` with unique names
             # since some have same filenames
 
-            tsvgz_flpth_src_l = [
+            tsvgz_flpth_l = [
                     tsvgz_flpth_enigma17770by511,
                     tsvgz_flpth_enigma50by30,
                     tsvgz_flpth_random,
             ]
 
-            tsvgz_flpth_dst_l = [os.path.join(report_dir, flnm) for flnm in [
-                    'enigma17770by511.tsv.gz',
-                    'enigma50by30.tsv.gz',
-                    'random.tsv.gz',
-            ]]
-
-            for src, dst in zip(tsvgz_flpth_src_l, tsvgz_flpth_dst_l):
-                shutil.copyfile(src, dst)
-
-            HTMLReportWriter(cmd_l, tsvgz_flpth_dst_l, report_dir).write()
+            HTMLReportWriter(cmd_l, tsvgz_flpth_l, report_dir).write()
 
             self.assertTrue(has_n_htmls(report_dir, 4))
 
-
+        '''
         ###
         ### HTMLReportWriter, heatmapping throws error
         with self.subTest():
             
-            self.assertTrue(len(var.warnings) == 0)
+            self.assertTrue(len(Var.warnings) == 0)
 
             cmd_l = ['avada kedavra'] # not PG but signifies that this should fail
 
@@ -479,128 +410,11 @@ class kb_PICRUSt2Test(unittest.TestCase):
 
             HTMLReportWriter(cmd_l, tsvgz_flpth_l, report_dir).write()
 
-            self.assertTrue(len(var.warnings) == 1)
+            self.assertTrue(len(Var.warnings) == 1)
             self.assertTrue(has_n_htmls(report_dir, 1))
-
-
-
-
-
-
-####################################################################################################
-####################################################################################################
-############################# INTEGRATION TESTS ####################################################
-####################################################################################################
-####################################################################################################
-
- 
-    ####################
-    ####################
-    @patch_('kb_PICRUSt2.kb_PICRUSt2Impl.DataFileUtil', new=lambda *a: get_mock_dfu('enigma50by30'))  # ?
-    @patch_('kb_PICRUSt2.kb_PICRUSt2Impl.GenericsAPI', new=lambda *a, **k: get_mock_gapi('enigma50by30'))
-    @patch('kb_PICRUSt2.kb_PICRUSt2Impl.run_check', new=get_mock_run_check('enigma50by30'))
-    @patch_('kb_PICRUSt2.kb_PICRUSt2Impl.FunctionalProfileUtil', new=lambda *a, **k: get_mock_fpu(''))
-    @patch_('kb_PICRUSt2.kb_PICRUSt2Impl.KBaseReport', new=lambda *a, **k: get_mock_kbr())
-    def test_has_row_AttributeMapping_create_all(self):
-        ret = self.serviceImpl.run_picrust2_pipeline(
-            self.ctx, {
-                **self.params_ws,
-                'amplicon_matrix_upa': enigma50by30,
-                'output_name': 'an_output_name',
-            }
-        )
-
-        self.assertTrue(len(var.objects_created) == 8, var.objects_created) 
-
-
-    ####################
-    ####################
-    @patch_('kb_PICRUSt2.kb_PICRUSt2Impl.DataFileUtil', new=lambda *args: get_mock_dfu('enigma50by30_noAttrMaps_noSampleSet'))
-    @patch_('kb_PICRUSt2.kb_PICRUSt2Impl.GenericsAPI', new=lambda *a, **k: get_mock_gapi('enigma50by30_noAttrMaps_noSampleSet'))
-    @patch('kb_PICRUSt2.kb_PICRUSt2Impl.run_check', new=get_mock_run_check('enigma50by30_noAttrMaps_noSampleSet'))
-    @patch_('kb_PICRUSt2.kb_PICRUSt2Impl.FunctionalProfileUtil', new=lambda *a, **k: get_mock_fpu(''))
-    @patch_('kb_PICRUSt2.kb_PICRUSt2Impl.KBaseReport', new=lambda *args, **kwargs: get_mock_kbr())
-    def test_has_no_row_AttributeMapping(self):
-        '''
-        Will not update/create row AttributeMapping if already none
-        Default is to create all the FPs
-        '''
-        ret = self.serviceImpl.run_picrust2_pipeline(
-            self.ctx, {
-                **self.params_ws,
-                'amplicon_matrix_upa': enigma50by30_noAttrMaps_noSampleSet,
-                'output_name': 'an_output_name',
-            }
-        )
-        
-        self.assertTrue(len(var.objects_created) == 6, var.objects_created)
-
-    ####################
-    ####################
-    @patch_('kb_PICRUSt2.kb_PICRUSt2Impl.DataFileUtil', new=lambda *a: get_mock_dfu('enigma50by30')) # ?
-    @patch_('kb_PICRUSt2.kb_PICRUSt2Impl.GenericsAPI', new=lambda *a, **k: get_mock_gapi('enigma50by30'))
-    @patch('kb_PICRUSt2.kb_PICRUSt2Impl.run_check', new=get_mock_run_check('enigma50by30'))
-    @patch_('kb_PICRUSt2.kb_PICRUSt2Impl.FunctionalProfileUtil', new=lambda *a, **k: get_mock_fpu(''))
-    @patch_('kb_PICRUSt2.kb_PICRUSt2Impl.KBaseReport', new=lambda *a, **k: get_mock_kbr())
-    def test_FP_options(self):
-        '''
-        Creating amplicon FPs logic is independent of creating sample FPs logic
         '''
 
-        with self.subTest():
-            ret = self.serviceImpl.run_picrust2_pipeline(
-                self.ctx, {
-                    **self.params_ws,
-                    'amplicon_matrix_upa': enigma50by30,
-                    'fp_options': {
-                        'create_amplicon_fps': False,
-                        'create_sample_fps': False,
-                    }
-                }
-            )
 
-            self.assertTrue(len(var.objects_created) == 2, var.objects_created) 
-
-
-        with self.subTest():
-            ret = self.serviceImpl.run_picrust2_pipeline(
-                self.ctx, {
-                    **self.params_ws,
-                    'amplicon_matrix_upa': enigma50by30,
-                    'fp_options': {
-                        'create_amplicon_fps': True,
-                        'create_sample_fps': True,
-                    }
-                }
-            )
-
-            self.assertTrue(len(var.objects_created) == 8, var.objects_created) 
-
-
-    ####################
-    ####################
-    @patch('kb_PICRUSt2.kb_PICRUSt2Impl.DataFileUtil', new=lambda *a: get_mock_dfu('enigma17770by511'))
-    @patch('kb_PICRUSt2.kb_PICRUSt2Impl.GenericsAPI', new=lambda *a, **k: get_mock_gapi('enigma17770by511'))
-    @patch('kb_PICRUSt2.kb_PICRUSt2Impl.run_check', new=get_mock_run_check('enigma17770by511'))
-    @patch('kb_PICRUSt2.kb_PICRUSt2Impl.FunctionalProfileUtil', new=lambda *a, **k: get_mock_fpu(''))
-    @patch_('kb_PICRUSt2.kb_PICRUSt2Impl.KBaseReport', new=lambda *a, **k: get_mock_kbr())
-    def test_large_dataset(self):
-        '''
-        '''
-
-        ret = self.serviceImpl.run_picrust2_pipeline(
-            self.ctx, {
-                **self.params_ws,
-                'amplicon_matrix_upa': enigma17770by511,
-                    'fp_options': {
-                        'create_amplicon_fps': True,
-                        'create_sample_fps': True,
-                    },
-            }
-        )
-
-        self.assertTrue(len(var.objects_created) == 8, var.objects_created) 
-        
 
 #!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 #!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
@@ -609,46 +423,9 @@ class kb_PICRUSt2Test(unittest.TestCase):
 #!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 #!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
-    #####
-    #####
     @classmethod
     def setUpClass(cls):
-        token = os.environ.get('KB_AUTH_TOKEN', None)
-        config_file = os.environ.get('KB_DEPLOYMENT_CONFIG', None)
-        cls.cfg = {}
-        config = ConfigParser()
-        config.read(config_file)
-        for nameval in config.items('kb_PICRUSt2'):
-            cls.cfg[nameval[0]] = nameval[1]
-        # Getting username from Auth profile for token
-        authServiceUrl = cls.cfg['auth-service-url']
-        auth_client = _KBaseAuth(authServiceUrl)
-        user_id = auth_client.get_user(token)
-        # WARNING: don't call any logging methods on the context object,
-        # it'll result in a NoneType error
-        cls.ctx = MethodContext(None)
-        cls.ctx.update({'token': token,
-                        'user_id': user_id,
-                        'provenance': [
-                            {'service': 'kb_PICRUSt2',
-                             'method': 'please_never_use_it_in_production',
-                             'method_params': []
-                             }],
-                        'authenticated': 1})
-        cls.wsURL = cls.cfg['workspace-url']
-        cls.wsClient = Workspace(cls.wsURL)
-        cls.wsName = 'kb_PICRUSt2_' + str(uuid.uuid4())                                                 
-        cls.wsId = cls.wsClient.create_workspace({'workspace': cls.wsName})[0]                      
-        cls.params_ws = {                                                                           
-            'workspace_id': cls.wsId,                                                               
-            'workspace_name': cls.wsName,                                                           
-            }                                                                                       
-        cls.serviceImpl = kb_PICRUSt2(cls.cfg)
-        cls.shared_folder = cls.cfg['scratch']
-        cls.callback_url = os.environ['SDK_CALLBACK_URL']
-        suffix = int(time.time() * 1000)
-        cls.wsName = "test_ContigFilter_" + str(suffix)
-        ret = cls.wsClient.create_workspace({'workspace': cls.wsName})  # noqa
+        cls.shared_folder = '/kb/module/work/tmp/'
 
     @classmethod
     def list_tests(cls):
@@ -656,9 +433,6 @@ class kb_PICRUSt2Test(unittest.TestCase):
 
     @classmethod
     def tearDownClass(cls):
-        if hasattr(cls, 'wsName'):
-            cls.wsClient.delete_workspace({'workspace': cls.wsName})
-            print('Test workspace was deleted')
         dec = '!!!' * 300
         print(dec, "DON'T FORGET TO SEE HTML(S)", dec)
         skipped_tests = list(set(all_tests) - set(cls.list_tests()))
@@ -679,20 +453,10 @@ all_tests = []
 for key, value in kb_PICRUSt2Test.__dict__.copy().items():
     if key.startswith('test') and callable(value):
         all_tests.append(key)
-'''
-When you just want to run certain tests,
-e.g., filter to tests in `run_tests`
 
-Comment out parts like `delattr` to deactivate
-'''
-integration_tests = [
-    'test_has_row_AttributeMapping_create_all', 'test_has_no_row_AttributeMapping',
-    'test_FP_options'
-    'test_large_dataset',
-]
 unit_tests = [
     'test_AmpliconMatrix_validation',
-    'test_run_check', 'test_OutfileWrangler', 
+    'test_run_check', 'test_appfile', 
     'test_AmpliconMatrix', 'test_AttributeMapping',
     'test_report', 'test_large_heatmap', 'test_small_heatmap',
 ]

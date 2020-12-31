@@ -1,12 +1,10 @@
 import json
 
-from .dprint import dprint
-from .config import var
+from .config import Var
+from ..util.debug import dprint
 
 
 
-#####
-#####
 def flatten(d):
     '''
     At most 1 level nesting
@@ -20,8 +18,6 @@ def flatten(d):
     return d1
 
 
-#####
-#####
 class Params:
 
 

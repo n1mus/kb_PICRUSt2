@@ -8,34 +8,31 @@ import gzip
 import json
 import functools
 
-from .dprint import dprint
-from .config import var
+from .config import Var
 from .error import * # custom Exceptions
-from .validate import Validate as vd
-
-
-pd.set_option('display.max_rows', 100)
-pd.set_option('display.max_columns', 50)
-pd.set_option('display.width', 1000)
-pd.set_option('display.max_colwidth', 20)
-
+from ..util import validate as vd
+from ..util.debug import dprint
 
 
 ####################################################################################################
 ####################################################################################################
 ####################################################################################################
-
+####################################################################################################
 class AmpliconMatrix:
 
+####################################################################################################
+####################################################################################################
     def __init__(self, upa):
         self.upa = upa
         self._get_obj()
 
 
+####################################################################################################
+####################################################################################################
     def _get_obj(self):
         logging.info('Loading AmpliconMatrix object')
 
-        obj = var.dfu.get_objects({
+        obj = Var.dfu.get_objects({
             'object_refs': [self.upa]
             })
 
@@ -43,10 +40,12 @@ class AmpliconMatrix:
         self.row_attrmap_upa = obj['data'][0]['data'].get('row_attributemapping_ref')
         self.obj = obj['data'][0]['data']
         
-        if 'run_dir' in var: # comment directory with AmpMat name. optional since unit tests may not have run_dir
-            dprint('touch %s' % os.path.join(var.run_dir, '#' + self.name), run='cli')
+        if 'run_dir' in Var: # comment directory with AmpMat name. optional since unit tests may not have run_dir
+            dprint('touch %s' % os.path.join(Var.run_dir, '#' + self.name), run='cli')
 
 
+####################################################################################################
+####################################################################################################
     def to_seq_abundance_table(self, flpth):
         '''
         Prerequisite: validate first with `validate_amplicon_abundance_data`
@@ -72,13 +71,17 @@ class AmpliconMatrix:
             index=row_ids, # Amplicon Ids 
             columns=col_ids # sample names
             )
-        data.index.name = var.amplicon_header_name
+        data.index.name = Var.amplicon_header_name
         data.to_csv(flpth, sep='\t', float_format='%g')
 
+####################################################################################################
+####################################################################################################
     def to_fasta(self, flpth):
-        fetched_flpth = var.gapi.fetch_sequence(self.upa)
+        fetched_flpth = Var.gapi.fetch_sequence(self.upa)
         shutil.copyfile(fetched_flpth, flpth)
 
+####################################################################################################
+####################################################################################################
     def validate_amplicon_abundance_data(self):
         '''
         Can't be all missing
@@ -92,7 +95,7 @@ class AmpliconMatrix:
 
         # Can't be all missing
         if vd.get_num_missing(a) == a.size:
-            raise ValidationException(
+            raise vd.ValidationException(
                 'Input AmpliconMatrix cannot have all missing matrix values'
             )
 
@@ -104,42 +107,33 @@ class AmpliconMatrix:
 
         # Integer
         if not vd.is_int_like(a):
-            raise ValidationException(
+            raise vd.ValidationException(
                 base_msg + 'Non-integer detected'
             )
 
         # Gte 0
         if np.any(np.round(a) < 0): # allow for small negative deltas
-            raise ValidationException(
+            raise vd.ValidationException(
                 base_msg + 'Negative value detected'
             )
 
 
-    def _map_id2attr_ids(self, id2attr, axis='row'):
+####################################################################################################
+####################################################################################################
+    def _swap_ids(self, id2attr: dict, axis='row') -> dict:
         '''
-        Parameters
-        ----------
-        id2attr - AmpliconMatrix row_ids to attribute you want to give AttributeMapping
-
-
-        Behavior
-        --------
-        Swap out ids in id2attr so they end up mapping AttributeMapping ids to attributes
+        `id2attr` will be AmpliconMatrix ids to attribute
+        Swap those ids out for the AttributeMapping ids
         '''
-        if f'{axis}_attributemapping_ref' not in self.obj:
-            raise Exception(
-                'Trying to map AmpliconMatrix %s_ids to %s AttributeMapping ids '
-                "when AmpliconMatrix doesn't have %s AttributeMapping"
-                % (axis, axis, axis)
-            )
-        elif f'{axis}_mapping' not in self.obj:
+
+        if f'{axis}_mapping' not in self.obj:
             msg = (
                 'Dude this object has a %s_attributemapping_ref '
                 'and needs a %s_mapping. Letting it slide for now.'
                 % (axis, axis)
             )
             logging.warning(msg)
-            var.warnings.append(msg)
+            Var.warnings.append(msg)
             return id2attr
 
         id2attr = {
@@ -150,14 +144,16 @@ class AmpliconMatrix:
         return id2attr
 
 
+####################################################################################################
+####################################################################################################
     def save(self, name=None):
         logging.info('Saving AmpliconMatrix')
 
-        upa_new = var.gapi.save_object({
+        upa_new = Var.gapi.save_object({
             'obj_type': 'KBaseMatrices.AmpliconMatrix', # TODO version
             'obj_name': name if name is not None else self.name,
             'data': self.obj,
-            'workspace_id': var.params['workspace_id'],
+            'workspace_id': Var.params['workspace_id'],
         })['obj_ref']
 
         return upa_new
@@ -167,9 +163,11 @@ class AmpliconMatrix:
 ####################################################################################################
 ####################################################################################################
 ####################################################################################################
-
+####################################################################################################
 class AttributeMapping:
 
+####################################################################################################
+####################################################################################################
     def __init__(self, upa, amp_mat):
         '''
         Needs amp_mat for root ref and id mapping
@@ -178,10 +176,12 @@ class AttributeMapping:
         self.amp_mat = amp_mat
         self._get_obj()
 
+####################################################################################################
+####################################################################################################
     def _get_obj(self):
         logging.info('Loading AttributeMapping object')
 
-        obj = var.dfu.get_objects({
+        obj = Var.dfu.get_objects({
             'object_refs': ['%s;%s' %(self.amp_mat.upa, self.upa)]
             })
 
@@ -189,18 +189,21 @@ class AttributeMapping:
         self.obj = obj['data'][0]['data']
 
 
-    def map_update_attribute(self, ind: int, id2attr: dict, map_ids_first=True):
+####################################################################################################
+####################################################################################################
+    def map_update_attribute(self, ind: int, id2attr: dict):
         '''
         Update attribute at index `ind` using mapping `id2attr`
         '''
-        if map_ids_first is True:
-            id2attr = self.amp_mat._map_id2attr_ids(id2attr)
+        id2attr = self.amp_mat._swap_ids(id2attr)
 
         for id, attr in id2attr.items():
             self.obj['instances'][id][ind] = attr
 
 
-    def get_attribute_slot_warn(self, attribute, source) -> int:
+####################################################################################################
+####################################################################################################
+    def get_add_attribute_slot(self, attribute, source) -> int:
         '''
         Get attribute slot matching both `attribute` and `source`
         
@@ -215,33 +218,28 @@ class AttributeMapping:
         # check if already exists
         for ind, attr_d in enumerate(self.obj['attributes']):
             if attr_d['attribute'] == attribute and attr_d['source'] == source:
-                msg = (
-                    'Overwriting attribute `%s` with source `%s` '
-                    'in row AttributeMapping with name `%s`'
-                    % (attribute, source, self.name)
-                )
-                logging.warning(msg)
-                var.warnings.append(msg)
-                return ind
+                return ind, True
 
         # append slot to `attributes`
         self.obj['attributes'].append({
             'attribute': attribute,
             'source': source,
-            })
+        })
 
         # append slots to `instances` 
         for attr_l in self.obj['instances'].values():
-            attr_l.append('')
+            attr_l.append(None)
 
-        return len(attr_l) - 1
+        return len(attr_l) - 1, False
 
 
+####################################################################################################
+####################################################################################################
     def save(self):
         logging.info('Saving AttributeMapping')
         
-        info = var.dfu.save_objects(
-            {'id': var.params['workspace_id'],
+        info = Var.dfu.save_objects(
+            {'id': Var.params['workspace_id'],
              "objects": [{
                  "type": "KBaseExperiments.AttributeMapping", # TODO version
                  "data": self.obj,
@@ -255,26 +253,58 @@ class AttributeMapping:
 
 
 
+
+
+
+
+
+####################################################################################################
 ####################################################################################################
 ####################################################################################################
 ####################################################################################################
 class Report:
     '''For facilitating testing'''
 
+####################################################################################################
+####################################################################################################
     def __init__(self, upa):
         self.upa = upa
         self._get_obj()
 
+####################################################################################################
+####################################################################################################
     def _get_obj(self):
 
         logging.info('Loading AttributeMapping object')
 
-        obj = var.dfu.get_objects({
+        obj = Var.dfu.get_objects({
             'object_refs': [self.upa]
             })
 
         self.obj = obj['data'][0]['data']
 
 
+####################################################################################################
+####################################################################################################
+####################################################################################################
+####################################################################################################
+class KBaseObject:
+
+####################################################################################################
+####################################################################################################
+    def __init__(self, upa):
+        self.upa = upa
+        self._get_obj()
+
+####################################################################################################
+####################################################################################################
+    def _get_obj(self):
+        logging.info('Loading KBase object data')
+        obj = Var.dfu.get_objects({
+            'object_refs': [self.upa]
+            })
+
+        self.name = obj['data'][0]['info'][1]
+        self.obj = obj['data'][0]['data']
 
 
