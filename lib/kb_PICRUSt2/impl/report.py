@@ -15,7 +15,6 @@ import itertools
 from .config import Var
 from ..util.debug import dprint
 
-t0 = None
 REPORT_HEIGHT = 800 # px
 MAX_DYN_LEN = 500
 #MAX_DYN_SIZE = MAX_DYN_LEN ** 2
@@ -31,7 +30,7 @@ Max matrix dim lengths, (sometimes assuming squarishness as upper bound):
 # TODO test things like empty df, large ..
 # TODO buttons cut off when wrap 2nd+ row
 # TODO Cmd - wrap text after a certain width
-# TODO long y-labels -> label and title cut off
+# TODO long y-labels -> label and title cut off sometimes
 
 ####################################################################################################
 ####################################################################################################
@@ -41,63 +40,37 @@ def do_heatmap(tsv_flpth, html_flpth): # TODO log coloring for func x sample?
     html_flpth: where to write plotly interactive html
     cluster: scipy clustering
     '''
-    global t0
 
     df = pd.read_csv(tsv_flpth, sep='\t', index_col=0) # default infer compression from file name extension
     tsv_flnm = os.path.basename(tsv_flpth)
 
-    dprint('df.shape # original', run=locals())
-
     ###
     ### subset
     original_shape = df.shape
-    subset = False
-    if df.shape[0] > MAX_DYN_LEN or df.shape[1] > MAX_DYN_LEN:
-        subset = True
-
+    subset = df.shape[0] > MAX_DYN_LEN or df.shape[1] > MAX_DYN_LEN
+    if subset is True:
         row_ordering = df.sum(axis=1).values.argsort()[::-1]
         col_ordering = df.sum(axis=0).values.argsort()[::-1]
     
         df = df.iloc[row_ordering, col_ordering]
         df = df.iloc[:MAX_DYN_LEN,:MAX_DYN_LEN]
 
-
-    dprint('df.shape # subset', run=locals())
-
     ###
     ###
-    logging.info('Clustering heatmap for %s' % os.path.basename(tsv_flpth))
-
-    t0 = time.time()
     row_ordering = leaves_list(linkage(df))
-    t_cluster_row = time.time() - t0
-    t0 = time.time()
     col_ordering = leaves_list(linkage(df.T))
-    t_cluster_col = time.time() - t0
-
-    dprint('t_cluster_row', 't_cluster_col', run=locals())
 
     df = df.iloc[row_ordering, col_ordering]
 
     ###
     ###
-    logging.info('Generating plotly interactive heatmap for %s' % os.path.basename(tsv_flpth))
-
-    t0 = time.time()
     fig = go.Figure(go.Heatmap(
         z=df.values,
         y=df.index.tolist(),
         x=df.columns.tolist(),
-        #colorbar={'len': 0.3},
     ))
-    t_go_heatmap = time.time() - t0
-
-    dprint('t_go_heatmap', run=locals())
 
     fig.update_layout(
-        #height=1000,
-        #width=1500,
-        #title_text=os.path.basename(tsv_flpth) + '<br>shape=' + str(df.shape),
         title=dict(
             text=(
                 os.path.basename(tsv_flpth) + '<br>' + 
@@ -108,25 +81,17 @@ def do_heatmap(tsv_flpth, html_flpth): # TODO log coloring for func x sample?
             ),
             x=0.5,
         ),
-        xaxis_title=Var.tsvTsvgzFlnm2AxisLabels.get(tsv_flnm, (('test - no axis labels for this flnm',)*2))[1],
-        yaxis_title=Var.tsvTsvgzFlnm2AxisLabels.get(tsv_flnm, (('test - no axis labels for this flnm',)*2))[0],
+        xaxis_title=Var.tsvgz_flnm_2_axis_labels.get(tsv_flnm, (('test - no axis labels for this flnm',)*2))[1],
+        yaxis_title=Var.tsvgz_flnm_2_axis_labels.get(tsv_flnm, (('test - no axis labels for this flnm',)*2))[0],
         xaxis_tickangle=45,
-        #yaxis_tickangle=45,
     )
 
     ###
     ###
-    logging.info('Writing plotly interactive heatmap at %s' % html_flpth)
-
-    t0 = time.time()
     fig.write_html(
         html_flpth,
-        #default_height='100%',
-        #default_width='100%',
     )
-    t_write_html = time.time() - t0
 
-    dprint('t_write_html', run=locals())
     
     
 
@@ -144,9 +109,9 @@ class HTMLReportWriter:
         'amplicon_ec',
         'amplicon_ko',
         'amplicon_metacyc',
-        'community_ec',
-        'community_ko',
-        'community_metacyc',
+        'metagenome_ec',
+        'metagenome_ko',
+        'metagenome_metacyc',
     ]
 
 ####################################################################################################
@@ -225,7 +190,7 @@ class HTMLReportWriter:
                 '</div>\n\n'
                 % (
                     fig_id,
-                    ('style="display:inline-flex;"' if fig_id == 'community_metacyc' else ''),
+                    ('style="display:inline-flex;"' if fig_id == 'metagenome_metacyc' else ''),
                     os.path.basename(html_flpth),
                 )
             )

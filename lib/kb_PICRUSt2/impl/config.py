@@ -23,38 +23,31 @@ _config = DotMap({
 
 #-------- these file names/paths should all be in corresponding order ------------------------------
 
-    'tsvgzRelFlpth2TsvFlnm': {
-        'pathways_out/path_abun_unstrat.tsv.gz': 'path_abun_unstrat.tsv', # func x sample
-        'EC_metagenome_out/pred_metagenome_unstrat.tsv.gz': 'EC_pred_metagenome_unstrat.tsv', # func x sample
-        'KO_metagenome_out/pred_metagenome_unstrat.tsv.gz': 'KO_pred_metagenome_unstrat.tsv', # func x sample
-        'pathways_out/path_abun_predictions.tsv.gz': 'path_abun_predictions.tsv', # amplicon x func
-        'EC_predicted.tsv.gz': 'EC_predicted.tsv', # amplicon x func
-        'KO_predicted.tsv.gz': 'KO_predicted.tsv', # amplicon x func
-    },
-    'tsvFlnm2Index': {
-        'path_abun_unstrat.tsv': 'sample', # func x sample
-        'EC_pred_metagenome_unstrat.tsv': 'sample', # func x sample
-        'KO_pred_metagenome_unstrat.tsv': 'sample', # func x sample
-        'path_abun_predictions.tsv': 'amplicon', # amplicon x func
-        'EC_predicted.tsv': 'amplicon', # amplicon x func
-        'KO_predicted.tsv': 'amplicon', # amplicon x func
-    },
-    'tsvTsvgzFlnm2AxisLabels': {
-        'path_abun_unstrat.tsv': ('MetaCyc pathway', 'sample ID'), # func x sample
-        'EC_pred_metagenome_unstrat.tsv': ('EC', 'sample ID'), # func x sample
-        'KO_pred_metagenome_unstrat.tsv': ('KO', 'sample ID'), # func x sample
-        'path_abun_predictions.tsv': ('amplicon ID', 'MetaCyc pathway'), # amplicon x func
-        'EC_predicted.tsv': ('amplicon ID', 'EC'), # amplicon x func
-        'KO_predicted.tsv': ('amplicon ID', 'KO'), # amplicon x func
-        #---
-        'path_abun_unstrat.tsv.gz': ('MetaCyc pathway', 'sample ID'), # func x sample
-        'pred_metagenome_unstrat.tsv.gz': ('EC', 'sample ID'), # func x sample
-        'EC_pred_metagenome_unstrat.tsv.gz': ('EC', 'sample ID'), # func x sample
-        'KO_pred_metagenome_unstrat.tsv.gz': ('KO', 'sample ID'), # func x sample
-        'path_abun_predictions.tsv.gz': ('amplicon ID', 'MetaCyc pathway'), # amplicon x func
-        'EC_predicted.tsv.gz': ('amplicon ID', 'EC'), # amplicon x func
-        'KO_predicted.tsv.gz': ('amplicon ID', 'KO'), # amplicon x func
-    },
+    'tsvgz_relflpth_l': [
+        'KO_predicted.tsv.gz',
+        'EC_predicted.tsv.gz',
+        'pathways_out/path_abun_predictions.tsv.gz',
+        'KO_metagenome_out/pred_metagenome_unstrat.tsv.gz',
+        'EC_metagenome_out/pred_metagenome_unstrat.tsv.gz',
+        'pathways_out/path_abun_unstrat.tsv.gz',
+    ],
+    'axis_labels': [
+        ('amplicon ID', 'KO'), # amplicon x func
+        ('amplicon ID', 'EC'), # amplicon x func
+        ('amplicon ID', 'MetaCyc pathway'), # amplicon x func
+        ('KO', 'sample ID'), # func x sample
+        ('EC', 'sample ID'), # func x sample
+        ('MetaCyc pathway', 'sample ID'), # func x sample
+    ],
+
+    'id_l': [ 
+        'amplicon_ko',
+        'amplicon_ec',
+        'amplicon_metacyc',
+        'metagenome_ko',
+        'metagenome_ec',
+        'metagenome_metacyc',
+    ]
 
 })
 
@@ -71,11 +64,11 @@ def reset_Var():
 '''
 TSVs are:
 
-'pathways_out/path_abun_unstrat.tsv', #* [most important to workflow] 1.2M
+'pathways_out/path_abun_unstrat.tsv', # most important to workflow
 'pathways_out/path_abun_unstrat_per_seq.tsv',
 'pathways_out/path_abun_predictions.tsv',
-'EC_predicted.tsv', #* [nice-to-have] 100M
-'KO_predicted.tsv', #* [nice-to-have] 358M
+'EC_predicted.tsv', # 100M
+'KO_predicted.tsv', # 358M (Ginormo)
 'EC_metagenome/pred_metagenome_unstrat.tsv',
 'KO_metagenome/pred_metagenome_unstrat.tsv',
 '''

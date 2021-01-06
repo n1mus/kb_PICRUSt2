@@ -24,7 +24,6 @@ class Params:
     DEFAULTS = {
         'create_amplicon_fps': True,
         'create_sample_fps': True,
-        'output_name': None,
     }
 
     def __init__(self, params):
@@ -40,8 +39,6 @@ class Params:
         ## This is kind of silly ##
         ## But the code is written before I figure out how the narrative passes things ##
 
-        if params.get('output_name') == '':
-            params['output_name'] = None # treat empty string as null case since ui only returns strings for string type
         if type(params.get('create_amplicon_fps')) is int:
             params['create_amplicon_fps'] = True if params['create_amplicon_fps'] == 1 else False
         if type(params.get('create_sample_fps')) is int:
@@ -60,8 +57,8 @@ class Params:
         VALID = [
             'amplicon_matrix_upa',
             'create_amplicon_fps', 'create_sample_fps',
-            'output_name',
             #---
+            'output_name',
             'workspace_id',
             'workspace_name',
         ]

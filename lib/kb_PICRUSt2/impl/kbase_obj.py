@@ -12,6 +12,7 @@ from .config import Var
 from .error import * # custom Exceptions
 from ..util import validate as vd
 from ..util.debug import dprint
+from ..util.file import get_numbered_duplicate
 
 
 ####################################################################################################
@@ -127,14 +128,7 @@ class AmpliconMatrix:
         '''
 
         if f'{axis}_mapping' not in self.obj:
-            msg = (
-                'Dude this object has a %s_attributemapping_ref '
-                'and needs a %s_mapping. Letting it slide for now.'
-                % (axis, axis)
-            )
-            logging.warning(msg)
-            Var.warnings.append(msg)
-            return id2attr
+            return id2attr # should have row_mapping, but if none then it doesn't matter
 
         id2attr = {
             self.obj[f'{axis}_mapping'][id]: attr
@@ -203,34 +197,26 @@ class AttributeMapping:
 
 ####################################################################################################
 ####################################################################################################
-    def get_add_attribute_slot(self, attribute, source) -> int:
+    def add_attribute_slot(self, attribute, source) -> tuple:
         '''
-        Get attribute slot matching both `attribute` and `source`
-        
-        Return the index of that slot, 
-        which corresponds to both obj['attributes'] and each list in obj['instances']
-
-        If slot matching both `attribute` and `source` does not exist
-        * if `create=True` add slot for it
-        * if `create=False` return -1
+        Append name/source to attributes and null to every instance
+        Return new slot index and name
         '''
-        
-        # check if already exists
-        for ind, attr_d in enumerate(self.obj['attributes']):
-            if attr_d['attribute'] == attribute and attr_d['source'] == source:
-                return ind, True
+        # get new name if it's a duplicate
+        attributes = [d['attribute'] for d in self.obj['attributes']]
+        if attribute in attributes:
+            attribute = get_numbered_duplicate(attributes, attribute)
 
-        # append slot to `attributes`
+        # append slots
         self.obj['attributes'].append({
             'attribute': attribute,
             'source': source,
         })
-
-        # append slots to `instances` 
-        for attr_l in self.obj['instances'].values():
-            attr_l.append(None)
-
-        return len(attr_l) - 1, False
+        for instance in self.obj['instances'].values():
+            instance.append(None)
+        #
+        return len(self.obj['attributes']) - 1, attribute
+        
 
 
 ####################################################################################################

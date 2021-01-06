@@ -6,5 +6,6 @@ sdk.cfg
 __pycache__
 .DS_Store
 *.tmp
+.mypy_cache/
 
 by_dataset_input/

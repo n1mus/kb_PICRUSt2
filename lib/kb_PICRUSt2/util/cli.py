@@ -6,8 +6,6 @@ import gzip
 import shutil
 
 
-####################################################################################################
-####################################################################################################
 class NonZeroReturnException(Exception): pass
 
 
@@ -20,7 +18,7 @@ def run_check(cmd: str, shell=True):
     
     completed_proc = subprocess.run(cmd, shell=shell, executable='/bin/bash', stdout=sys.stdout, stderr=sys.stderr)
 
-    logging.info('Took %.2fmin' % ((time.time() - t0)/60))
+    logging.info('Cmd took %.2fmin' % ((time.time() - t0)/60))
 
     if completed_proc.returncode != 0:
         raise NonZeroReturnException(

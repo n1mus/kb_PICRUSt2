@@ -14,9 +14,6 @@ from ..util.debug import dprint
 ####################################################################################################
 def check_dropped_sample_ids(tsv_flpth, amp_mat):
 
-    index = Var.tsvFlnm2Index[os.path.basename(tsv_flpth)]
-    assert index == 'sample' 
-
     df_partial = pd.read_csv(tsv_flpth, sep='\t', index_col=0).T
     id_l_full = amp_mat.obj['data']['col_ids']
 
@@ -30,8 +27,6 @@ def check_dropped_sample_ids(tsv_flpth, amp_mat):
 def check_dropped_amplicon_ids(tsv_flpth, amp_mat):
     '''
     Check dropped amplicons (due to not aligning enough or too large NSTI)
-    
-
 
     Parameters
     ----------
@@ -40,33 +35,19 @@ def check_dropped_amplicon_ids(tsv_flpth, amp_mat):
     amp_mat - has info about all amplicons
     '''
 
-    # not applicable to sample TSV
-    index = Var.tsvFlnm2Index[os.path.basename(tsv_flpth)]
-    assert index == 'amplicon' 
-
     logging.info('Starting checking dropped amplicons for TSV %s' % tsv_flpth)
-    t0 = time.time()
 
     #
-    df_partial = pd.read_csv(tsv_flpth, sep='\t', index_col=0)
+    id_l_partial = pd.read_csv(tsv_flpth, sep='\t', index_col=0).index
     id_l_full = amp_mat.obj['data']['row_ids']
-
-    # no need to check
-    if df_partial.shape[0] == len(id_l_full):
-        logging.info('No need for checking TSV %s' % tsv_flpth)
-        return
 
     # check align/nsti
     dropped_align, dropped_nsti = _get_dropped_ids(amp_mat)
-    dprint(
-        'len(dropped_align)',
-        'len(dropped_nsti)',
-        'len(df_partial.index)',
-        'len(id_l_full)',
-        run=locals()
-    )
-    difference = sorted(set(id_l_full) - set(df_partial.index))
-    assert difference == sorted(dropped_align) or difference == sorted(dropped_align + dropped_nsti)
+
+    difference0 = sorted(set(id_l_partial) - set(id_l_full))
+    difference1 = sorted(set(id_l_full) - set(id_l_partial))
+    assert difference0 == []
+    assert difference1 == sorted(dropped_align) or difference1 == sorted(dropped_align + dropped_nsti)
 
 
 
@@ -82,10 +63,9 @@ def _get_dropped_ids(amp_mat, nsti_max=2):
     # passing files is messy and out_dir should be app global anyway
     nsti_flpth = os.path.join(Var.out_dir, 'marker_predicted_and_nsti.tsv.gz')
 
-    ids_all = amp_mat.obj['data']['row_ids']
-
     df = pd.read_csv(nsti_flpth, sep='\t', index_col=0, header=0)
 
+    ids_all = amp_mat.obj['data']['row_ids']
     dropped_align = list(set(ids_all) - set(df.index))
     dropped_nsti = list(df.index[df['metadata_NSTI'] > nsti_max])
 
