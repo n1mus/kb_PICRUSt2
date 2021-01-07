@@ -26,10 +26,7 @@ Max matrix dim lengths, (sometimes assuming squarishness as upper bound):
 * To render in narrative: as little as possible. 600^2?
 '''
 
-# TODO a element all: inhert; ?
 # TODO test things like empty df, large ..
-# TODO Cmd - white-space: pre;
-# TODO long y-labels -> label and title cut off sometimes
 # TODO full function in hover? too much data ...
 
 ####################################################################################################
@@ -131,8 +128,8 @@ class HTMLReportWriter:
 
         for cmd in self.cmd_l:
             txt += (
-                '<p>\n'
-                '<code>' + cmd.replace('\n','<br>') + '</code>\n'
+                '<p class="fixwhitespace">\n'
+                '<code>' + cmd + '</code>\n'
                 '</p>\n'
             )
 
