@@ -14,11 +14,9 @@ from installed_clients.WorkspaceClient import Workspace
 from kb_PICRUSt2.kb_PICRUSt2Impl import kb_PICRUSt2 
 from kb_PICRUSt2.impl.kbase_obj import AmpliconMatrix, AttributeMapping
 from kb_PICRUSt2.impl import appfile
-from kb_PICRUSt2.impl.report import do_heatmap, HTMLReportWriter
 from kb_PICRUSt2.impl.config import Var
 from kb_PICRUSt2.impl.error import * # Exceptions
 from kb_PICRUSt2.util.debug import dprint
-from kb_PICRUSt2.util.validate import ValidationException
 from mock import *
 import config
 

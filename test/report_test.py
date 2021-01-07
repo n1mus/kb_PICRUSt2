@@ -60,7 +60,7 @@ class ReportTest(config.BaseTest):
 
         write_random_tsv(tsvgz_flpth, dim=7000, max=1500)
 
-        do_heatmap(tsvgz_flpth, html_flpth)
+        do_heatmap(tsvgz_flpth, html_flpth, ('test','test'))
 
 
 
@@ -105,7 +105,7 @@ class ReportTest(config.BaseTest):
             tsvgz_flpth_enigma17770by511 = '/kb/module/test/data/by_dataset_input/enigma17770by511/return/PICRUSt2_output/pathways_out/path_abun_unstrat.tsv.gz'
             html_flpth = os.path.join(report_dir, 'heatmap_enigma17770by511.html')
 
-            do_heatmap(tsvgz_flpth_enigma17770by511, html_flpth)
+            do_heatmap(tsvgz_flpth_enigma17770by511, html_flpth, ('test','test'))
 
             self.assertTrue(has_n_htmls(report_dir, 1))
 
@@ -121,7 +121,7 @@ class ReportTest(config.BaseTest):
             tsvgz_flpth_enigma50by30 = '/kb/module/test/data/by_dataset_input/enigma50by30/return/PICRUSt2_output/pathways_out/path_abun_unstrat.tsv.gz'
             html_flpth = os.path.join(report_dir, 'heatmap_enigma50by30.html')
 
-            do_heatmap(tsvgz_flpth_enigma50by30, html_flpth)
+            do_heatmap(tsvgz_flpth_enigma50by30, html_flpth, ('test','test'))
 
             self.assertTrue(has_n_htmls(report_dir, 1))
 
@@ -139,7 +139,7 @@ class ReportTest(config.BaseTest):
 
             write_random_tsv(tsvgz_flpth_random, dim=2000, max=100)
 
-            do_heatmap(tsvgz_flpth_random, html_flpth)
+            do_heatmap(tsvgz_flpth_random, html_flpth, ('test','test'))
 
             self.assertTrue(has_n_htmls(report_dir, 1))
 
@@ -152,7 +152,7 @@ class ReportTest(config.BaseTest):
 
             tsvgz_flpth_l = [
                 tsvgz_flpth_enigma17770by511,
-            ]
+            ] * 6
 
             report_dir = os.path.join(run_dir, 'report_HTMLReportWriter_1heatmap')
 
@@ -177,7 +177,7 @@ class ReportTest(config.BaseTest):
                     tsvgz_flpth_enigma17770by511,
                     tsvgz_flpth_enigma50by30,
                     tsvgz_flpth_random,
-            ]
+            ] * 2
 
             HTMLReportWriter(cmd_l, tsvgz_flpth_l, report_dir).write()
 

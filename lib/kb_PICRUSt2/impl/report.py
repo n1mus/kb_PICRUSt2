@@ -28,17 +28,16 @@ Max matrix dim lengths, (sometimes assuming squarishness as upper bound):
 
 # TODO a element all: inhert; ?
 # TODO test things like empty df, large ..
-# TODO buttons cut off when wrap 2nd+ row
-# TODO Cmd - wrap text after a certain width
+# TODO Cmd - white-space: pre;
 # TODO long y-labels -> label and title cut off sometimes
+# TODO full function in hover? too much data ...
 
 ####################################################################################################
 ####################################################################################################
-def do_heatmap(tsv_flpth, html_flpth): # TODO log coloring for func x sample?
+def do_heatmap(tsv_flpth, html_flpth, axis_labels): # TODO log coloring for func x sample?
     '''
     tsv_flpth: data to heatmap. it is a TSV GZ in PICRUSt2's Var.out_dir
-    html_flpth: where to write plotly interactive html
-    cluster: scipy clustering
+    html_flpth: where to write plotly html
     '''
 
     df = pd.read_csv(tsv_flpth, sep='\t', index_col=0) # default infer compression from file name extension
@@ -81,8 +80,8 @@ def do_heatmap(tsv_flpth, html_flpth): # TODO log coloring for func x sample?
             ),
             x=0.5,
         ),
-        xaxis_title=Var.tsvgz_flnm_2_axis_labels.get(tsv_flnm, (('test - no axis labels for this flnm',)*2))[1],
-        yaxis_title=Var.tsvgz_flnm_2_axis_labels.get(tsv_flnm, (('test - no axis labels for this flnm',)*2))[0],
+        xaxis_title=axis_labels[1],
+        yaxis_title=axis_labels[0],
         xaxis_tickangle=45,
     )
 
@@ -103,37 +102,15 @@ def do_heatmap(tsv_flpth, html_flpth): # TODO log coloring for func x sample?
 ####################################################################################################
 class HTMLReportWriter:
 
-    # incoming TSVs should match this order so can iteratively generate tabcontent divs with right ids
-    # don't go by TSV file names from PCRSt2 because those can be duplicates
-    fig_id_l = [ 
-        'amplicon_ec',
-        'amplicon_ko',
-        'amplicon_metacyc',
-        'metagenome_ec',
-        'metagenome_ko',
-        'metagenome_metacyc',
-    ]
 
 ####################################################################################################
 ####################################################################################################
     def __init__(self, cmd_l, tsv_flpth_l, report_dir): 
         '''
-        Input:
-        * cmd_l - list of app CLI commands
-        * tsv_flpth_l
-        * report_dir - not by app-global for some reason
-
-        Sort of self contained, feed it these ^
+        tsv_flpth_l should have TSVs corresponding to Var.id_l etc.
         '''
-        self.replacement_d = {}
 
-        # cycle tsv_flpth_l for testing
-        n = len(self.fig_id_l)
-        if len(tsv_flpth_l) < n:
-            c = itertools.cycle(tsv_flpth_l)
-            tsv_flpth_l = [
-                next(c) for i in range(n)
-            ]
+        self.replacement_d = {}
 
         #
         self.tsv_flpth_l = tsv_flpth_l
@@ -166,22 +143,20 @@ class HTMLReportWriter:
 ####################################################################################################
     def _compile_figures(self):
 
-        logging.info('Compiling report figures')
-
         #
         html_flpth_l = [
             os.path.join(self.report_dir, fig_id + '.html') 
-            for fig_id in self.fig_id_l
+            for fig_id in Var.id_l
         ]
        
         #
-        for flpth_tup in zip(self.tsv_flpth_l, html_flpth_l):
+        for flpth_tup in zip(self.tsv_flpth_l, html_flpth_l, Var.axis_labels):
             do_heatmap(*flpth_tup)
 
 
         # tabcontent divs with iframes
         txt = ''
-        for fig_id, html_flpth in zip(self.fig_id_l, html_flpth_l):
+        for fig_id, html_flpth in zip(Var.id_l, html_flpth_l):
             txt += (
                 '<div id="%s" class="tabcontent" %s>\n'
                 '<iframe src="%s" '

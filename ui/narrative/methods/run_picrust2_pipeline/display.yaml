@@ -4,7 +4,7 @@
 name: Predict prokaryote EC, KO, & MetaCyc function abundances with PICRUSt2 v2.3.0_b
 
 tooltip: |
-    Predict prokaryote EC, KO, & MetaCyc function abundances per genome or per metagenome, given 16S sequence abundance matrix
+    Predict prokaryote EC, KO, & MetaCyc function abundances per genome or metagenome, given 16S sequence abundance matrix
 
 screenshots: []
 

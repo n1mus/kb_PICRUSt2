@@ -31,7 +31,7 @@ import config
 ######### TOGGLE PATCH ###############
 ######################################
 ###################################### 
-do_patch = False
+do_patch = True
 
 if do_patch:
     patch_ = patch

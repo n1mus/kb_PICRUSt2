@@ -23,6 +23,14 @@ _config = DotMap({
 
 #-------- these file names/paths should all be in corresponding order ------------------------------
 
+    'id_l': [
+        'amplicon_ko',
+        'amplicon_ec',
+        'amplicon_metacyc',
+        'metagenome_ko',
+        'metagenome_ec',
+        'metagenome_metacyc',
+    ],
     'tsvgz_relflpth_l': [
         'KO_predicted.tsv.gz',
         'EC_predicted.tsv.gz',
@@ -32,22 +40,24 @@ _config = DotMap({
         'pathways_out/path_abun_unstrat.tsv.gz',
     ],
     'axis_labels': [
-        ('amplicon ID', 'KO'), # amplicon x func
-        ('amplicon ID', 'EC'), # amplicon x func
-        ('amplicon ID', 'MetaCyc pathway'), # amplicon x func
-        ('KO', 'sample ID'), # func x sample
-        ('EC', 'sample ID'), # func x sample
-        ('MetaCyc pathway', 'sample ID'), # func x sample
+        ('amplicon ID', 'KO'),
+        ('amplicon ID', 'EC'),
+        ('amplicon ID', 'MetaCyc pathway'),
+        ('KO', 'sample ID'),
+        ('EC', 'sample ID'),
+        ('MetaCyc pathway', 'sample ID'),
     ],
 
-    'id_l': [ 
-        'amplicon_ko',
-        'amplicon_ec',
-        'amplicon_metacyc',
-        'metagenome_ko',
-        'metagenome_ec',
-        'metagenome_metacyc',
-    ]
+
+
+    'id_2_axis_labels': {
+        'amplicon_ko': ('amplicon ID', 'KO'),
+        'amplicon_ec': ('amplicon ID', 'EC'),
+        'amplicon_metacyc': ('amplicon ID', 'MetaCyc pathway'),
+        'metagenome_ko': ('KO', 'sample ID'),
+        'metagenome_ec': ('EC', 'sample ID'),
+        'metagenome_metacyc': ('MetaCyc pathway', 'sample ID'),
+    },
 
 })
 
