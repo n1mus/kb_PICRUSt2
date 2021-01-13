@@ -306,7 +306,7 @@ class kb_PICRUSt2:
                 }, 
                 {
                     'ref': amp_mat_upa_new, 
-                    'description': 'Updated row AttributeMapping reference to `%s`' % row_attr_map_upa_new
+                    'description': 'Updated row AttributeMapping reference to `%s`' % row_attrmap_upa_new
                 },
             ])
 
