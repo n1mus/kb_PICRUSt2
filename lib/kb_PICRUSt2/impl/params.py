@@ -23,9 +23,12 @@ class Params:
 
     DEFAULTS = {
         'cog': 0,
+        'ec': 1,
+        'ko': 1,
         'pfam': 0,
         'tigrfam': 0,
         'pheno': 0,
+        'metacyc': 1,
         'create_amplicon_fps': True,
         'create_sample_fps': True,
     }
@@ -38,12 +41,15 @@ class Params:
         'functions',
         'fp_options',
         #---
-        'create_amplicon_fps', 
-        'create_sample_fps',
         'cog',
+        'ec',
+        'ko',
         'pfam',
         'tigrfam',
         'pheno',
+        'metacyc',
+        'create_amplicon_fps', 
+        'create_sample_fps',
         #---
         'workspace_id',
         'workspace_name',

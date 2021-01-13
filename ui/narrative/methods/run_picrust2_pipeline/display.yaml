@@ -34,6 +34,16 @@ parameters :
             COG
         short-hint: |
             COG
+    ec:
+        ui-name: |
+            EC
+        short-hint: |
+            EC
+    ko:
+        ui-name: |
+            KO
+        short-hint: |
+            KO
     pfam:
         ui-name: |
             Pfam
@@ -49,6 +59,11 @@ parameters :
             IMG phenotype
         short-hint: |
             IMG phenotype
+    metacyc:
+        ui-name: |
+            MetaCyc
+        short-hint: |
+            MetaCyc
     create_amplicon_fps:
         ui-name: |
             Create amplicon FunctionalProfiles
@@ -72,9 +87,9 @@ parameter-groups:
             FunctionalProfile options
     functions:
         ui-name: |
-            Additional functions
+            Functions
         short-hint:
-            Functions in addition to default KO, EC, & MetaCyc
+            Functions
 
 description : |
 

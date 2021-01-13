@@ -1,4 +1,4 @@
-from dotmap import DotMap
+from dotmap import DotMap # TODO make so fails when accessing something non-existent
 import pandas as pd
 
 
@@ -36,65 +36,65 @@ _config = DotMap(
     func_2_cfg=dict( 
         cog=dict(
             name='COG',
+            title='COG',
             relfp=[
                 'COG_predicted.tsv.gz',
                 'COG_metagenome_out/pred_metagenome_unstrat.tsv.gz',
             ],
-            optional=True,
         ),      
 
         ec=dict(
             name='EC',
+            title='EC',
             relfp=[
                 'EC_predicted.tsv.gz',
                 'EC_metagenome_out/pred_metagenome_unstrat.tsv.gz',
             ],
-            optional=False,
         ),
 
         ko=dict(
             name='KO',
+            title='KO',
             relfp=[
                 'KO_predicted.tsv.gz',
                 'KO_metagenome_out/pred_metagenome_unstrat.tsv.gz',
             ],
-            optional=False,
         ),
 
         pfam=dict(
             name='Pfam',
+            title='Pfam',
             relfp=[
                 'PFAM_predicted.tsv.gz',
                 'PFAM_metagenome_out/pred_metagenome_unstrat.tsv.gz',
             ],
-            optional=True,
         ),
 
         tigrfam=dict(
             name='TIGRFAMs',
+            title='TIGRFAMs',
             relfp=[
                 'TIGRFAM_predicted.tsv.gz',
                 'TIGRFAM_metagenome_out/pred_metagenome_unstrat.tsv.gz',
             ],
-            optional=True,
         ),
 
         pheno=dict(
             name='IMG phenotype',
+            title='IMG Phenotype',
             relfp=[
                 'PHENO_predicted.tsv.gz',
                 'PHENO_metagenome_out/pred_metagenome_unstrat.tsv.gz',
             ],
-            optional=True,
         ),
 
         metacyc=dict(
             name='MetaCyc',
+            title='MetaCyc',
             relfp=[
                 'pathways_out/path_abun_predictions.tsv.gz',
                 'pathways_out/path_abun_unstrat.tsv.gz',
             ],
-            optional=False,
   
         ),
 

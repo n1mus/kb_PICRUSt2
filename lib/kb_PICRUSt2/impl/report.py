@@ -29,6 +29,8 @@ Max matrix dim lengths, (sometimes assuming squarishness as upper bound):
 # TODO test things like empty df, large ..
 # TODO full function in hover? too much data ...
 
+'FAPROTAX Functions <taxonomy="RDP Clsf Taxonomy, <gene="ssu", minWords="default", conf=0.8>">'
+
 ####################################################################################################
 ####################################################################################################
 def do_heatmap(tsv_fp, html_fp, axis_labels): # TODO log coloring for func x sample?
@@ -64,6 +66,12 @@ def do_heatmap(tsv_fp, html_fp, axis_labels): # TODO log coloring for func x sam
         z=df.values,
         y=df.index.tolist(),
         x=df.columns.tolist(),
+        colorbar=dict(
+            title=dict(
+                text='Abundance',
+                side='right',
+            ),
+        ),
     ))
 
     fig.update_layout(
@@ -145,7 +153,7 @@ class HTMLReportWriter:
         content_l = []
         for per in ['amplicon', 'metagenome']:
             for func in Var.func_l:
-                if Var.func_2_cfg[func]['optional'] and not Var.params.getd(func):
+                if not Var.params.getd(func):
                     continue
 
 

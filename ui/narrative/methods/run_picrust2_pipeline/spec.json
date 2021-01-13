@@ -14,9 +14,12 @@
             "id": "functions",
             "parameters": [
                 "cog",
+                "ec",
+                "ko",
                 "pfam",
                 "tigrfam",
-                "pheno"
+                "pheno",
+                "metacyc"
             ],
             "optional": false,
             "advanced": true,
@@ -57,6 +60,28 @@
                 "checked_value": 1
             }
         },{
+            "id": "ec",
+            "optional": true,
+            "advanced": false,
+            "allow_multiple": false,
+            "default_values": ["1"],
+            "field_type": "checkbox",
+            "checkbox_options": {
+                "unchecked_value": 0,
+                "checked_value": 1
+            }
+        },{
+            "id": "ko",
+            "optional": true,
+            "advanced": false,
+            "allow_multiple": false,
+            "default_values": ["1"],
+            "field_type": "checkbox",
+            "checkbox_options": {
+                "unchecked_value": 0,
+                "checked_value": 1
+            }
+        },{
             "id": "pfam",
             "optional": true,
             "advanced": false,
@@ -87,6 +112,17 @@
             "field_type": "checkbox",
             "checkbox_options": {
                 "unchecked_value": 0,
+                "checked_value": 1
+            }
+        },{
+            "id": "metacyc",
+            "optional": true,
+            "advanced": false,
+            "allow_multiple": false,
+            "default_values": ["0"],
+            "field_type": "checkbox",
+            "checkbox_options": {
+                "unchecked_value": 1,
                 "checked_value": 1
             }
         },{

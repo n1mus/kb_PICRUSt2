@@ -134,17 +134,17 @@ class kb_PICRUSt2Test(config.BaseTest):
 
 ####################################################################################################
 ####################################################################################################
-    @patch_('kb_PICRUSt2.kb_PICRUSt2Impl.DataFileUtil', new=lambda u: get_mock_dfu('userTest'))
-    @patch_('kb_PICRUSt2.kb_PICRUSt2Impl.GenericsAPI', new=lambda *a, **k: get_mock_gapi('userTest'))
-    @patch_('kb_PICRUSt2.kb_PICRUSt2Impl.run_check', new=get_mock_run_check('userTest'))
+    @patch_('kb_PICRUSt2.kb_PICRUSt2Impl.DataFileUtil', new=lambda *a: get_mock_dfu('enigma50by30')) # ?
+    @patch_('kb_PICRUSt2.kb_PICRUSt2Impl.GenericsAPI', new=lambda *a, **k: get_mock_gapi('enigma50by30'))
+    @patch('kb_PICRUSt2.kb_PICRUSt2Impl.run_check', new=get_mock_run_check('enigma50by30'))
     @patch_('kb_PICRUSt2.kb_PICRUSt2Impl.FunctionalProfileUtil', new=lambda *a, **k: get_mock_fpu(''))
-    @patch_('kb_PICRUSt2.kb_PICRUSt2Impl.KBaseReport', new=lambda u: get_mock_kbr())
+    @patch_('kb_PICRUSt2.kb_PICRUSt2Impl.KBaseReport', new=lambda *a, **k: get_mock_kbr())
     def test_func_options(self):
         with self.subTest():
             ret = config.get_serviceImpl().run_picrust2_pipeline(
                 config.ctx, {
                     **config.get_ws(),
-                    'amplicon_matrix_upa': userTest,
+                    'amplicon_matrix_upa': enigma50by30,
                     'functions': {
                         'cog': 1,
                         'pfam': 1,
@@ -152,21 +152,21 @@ class kb_PICRUSt2Test(config.BaseTest):
                         'pheno': 1,
                     },
                     'fp_options': {
-                        'create_amplicon_fps': True,
-                        'create_sample_fps': True,
+                        'create_amplicon_fps': 1,
+                        'create_sample_fps': 1,
                     },
                     'output_name': 'an_output_name',
                 }
             )
 
-            assert len(Var.objects_created) == 14, Var.objects_created
+            assert len(Var.objects_created) == 16, Var.objects_created
 
-
+        '''
         with self.subTest():
             ret = config.get_serviceImpl().run_picrust2_pipeline(
                 config.ctx, {
                     **config.get_ws(),
-                    'amplicon_matrix_upa': userTest,
+                    'amplicon_matrix_upa': enigma50by30,
                     'functions': {
                         'cog': 0,
                         'pfam': 1,
@@ -174,14 +174,15 @@ class kb_PICRUSt2Test(config.BaseTest):
                         'pheno': 1,
                     },
                     'fp_options': {
-                        'create_amplicon_fps': True,
-                        'create_sample_fps': True,
+                        'create_amplicon_fps': 0,
+                        'create_sample_fps': 1,
                     },
                     'output_name': 'an_output_name',
                 }
             )
 
             assert len(Var.objects_created) == 10, Var.objects_created
+        '''
 
 
 ####################################################################################################
@@ -200,8 +201,8 @@ class kb_PICRUSt2Test(config.BaseTest):
                 **config.get_ws(),
                 'amplicon_matrix_upa': enigma17770by511,
                 'fp_options': {
-                    'create_amplicon_fps': True,
-                    'create_sample_fps': True,
+                    'create_amplicon_fps': 1,
+                    'create_sample_fps': 1,
                 },
                 'output_name': 'an_output_name',
             }

@@ -257,18 +257,17 @@ class kb_PICRUSt2:
         #####
 
         if Var.debug:
-            tsvgz_flpth_l = [
-                os.path.join(Var.out_dir, tsvgz_relflpth) 
-                for tsvgz_relflpth in list(Var.tsvgz_relflpth_l)
-            ]
-            for i, tsvgz_flpth in enumerate(tsvgz_flpth_l):
-                if i in [3,4,5]:
-                    # Check no samples dropped (debug)
-                    appfile.check_dropped_sample_ids(tsvgz_flpth, amp_mat)
-                elif i in [0,1,2]:
-                    # Check dropped amplicons are the unaligned/distant ones (debug)
-                    appfile.check_dropped_amplicon_ids(tsvgz_flpth, amp_mat)
+            for func in Var.func_l:
+                if not Var.params.getd(func): 
+                    continue
+                    
+                fp0 = os.path.join(Var.out_dir, Var.func_2_cfg[func]['relfp'][0])
+                fp1 = os.path.join(Var.out_dir, Var.func_2_cfg[func]['relfp'][1])
 
+                # Check dropped amplicons are the unaligned/distant ones (debug)
+                appfile.check_dropped_amplicon_ids(fp0, amp_mat)
+                # Check no samples dropped (debug)
+                appfile.check_dropped_sample_ids(fp1, amp_mat)
 
 
 
@@ -351,7 +350,7 @@ class kb_PICRUSt2:
         os.mkdir(tsv_dir)
 
         for func in Var.func_l:
-            if Var.func_2_cfg[func]['optional'] and not Var.params.getd(func):
+            if not Var.params.getd(func):
                 continue
 
             func_name = Var.func_2_cfg[func]['name']
