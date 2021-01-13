@@ -84,6 +84,8 @@ class kb_PICRUSt2:
 ####################################################################################################
 ####################################################################################################
 
+        logging.info(params)
+
         #
         ##
         ### params, app-globals, directories, etc
@@ -170,10 +172,12 @@ class kb_PICRUSt2:
         ####
         #####
         
+        # TODO get tee functionality working in run_check
+        # to avoid extra cmd
         
         Var.out_dir = os.path.join(Var.return_dir, 'PICRUSt2_output')
-        log_flpth = os.path.join(Var.return_dir, 'cmd_log.txt')
-
+        log_flpth = os.path.join(Var.return_dir, 'log.txt')
+        p = 4
 
         cmd_pipeline = ' '.join([
             'set -o pipefail &&',
@@ -183,11 +187,9 @@ class kb_PICRUSt2:
             '-i', seq_abundance_table_flpth,
             '-o', Var.out_dir,
             '--per_sequence_contrib',
-            '-p 4',
+            '-p', str(p),
             '|& tee', log_flpth,
         ])
-        
-    
 
         cmd_description = ' \\\n'.join([
             'cd %s &&' % Var.out_dir,
@@ -202,6 +204,38 @@ class kb_PICRUSt2:
             '                    -o pathways_out/path_abun_unstrat_descrip.tsv.gz'
         ])
 
+        get_cmd_func_l = lambda FUNC:  [ 
+            (
+                'cd %s && ' % Var.out_dir +
+                'source activate picrust2 && '
+                f'hsp.py -i {FUNC} -t out.tre -o {FUNC}_predicted.tsv.gz -p {p}'
+            ),
+            (
+                'cd %s && ' % Var.out_dir +
+                'source activate picrust2 && '
+                'metagenome_pipeline.py '
+                '-i ../%s ' % os.path.basename(seq_abundance_table_flpth) +
+                '-m marker_predicted_and_nsti.tsv.gz '
+                f'-f {FUNC}_predicted.tsv.gz '
+                f'-o {FUNC}_metagenome_out'
+            )
+        ] + (
+            [] if FUNC == 'PHENO' else [ # no descriptions for IMG phenotype
+                (
+                    'cd %s && ' % Var.out_dir +
+                    'source activate picrust2 && '
+                    f'add_descriptions.py -i {FUNC}_metagenome_out/pred_metagenome_unstrat.tsv.gz -m {FUNC} '
+                                        f'-o {FUNC}_metagenome_out/pred_metagenome_unstrat_descrip.tsv.gz'
+                ),
+            ]
+        ) 
+
+        cmd_func_l = []
+        for func in ['cog', 'pfam', 'tigrfam', 'pheno']:
+            if params.getd(func) == 1:
+                cmd_func_l.extend(
+                    get_cmd_func_l(func.upper())
+                )
 
 
         #
@@ -212,7 +246,8 @@ class kb_PICRUSt2:
 
         run_check(cmd_pipeline)
         run_check(cmd_description)
-
+        for cmd_func in cmd_func_l:
+            run_check(cmd_func)
 
 
         #
@@ -247,8 +282,8 @@ class kb_PICRUSt2:
         path_abun_predictions_tsv_gz_flpth = os.path.join(
             Var.out_dir, 'pathways_out/path_abun_predictions.tsv.gz') 
 
-        attribute = 'PICRUSt2 MetaCyc Pathway Predictions'
-        source = 'kb_PICRUSt2/run_picrust2_pipeline'
+        attribute = 'MetaCyc Predictions'
+        source = 'PICRUSt2'
 
         # if row AttributeMapping, 
         # update that and referencing objs
@@ -271,151 +306,11 @@ class kb_PICRUSt2:
                 }, 
                 {
                     'ref': amp_mat_upa_new, 
-                    'description': 'Updated row AttributeMapping reference'
+                    'description': 'Updated row AttributeMapping reference to `%s`' % row_attr_map_upa_new
                 },
             ])
 
     
-       
-
-        #
-        ##
-        ### prepare dir to give FPU decompressed TSVs
-        ####
-        #####
-
-        # gunzip TSVs out to another directory
-        tsv_dir = os.path.join(Var.run_dir, 'decompressed_tsv')
-        tsvgz_flpth_l = [os.path.join(Var.out_dir, relflpth) for relflpth in Var.tsvgz_relflpth_l]
-        tsv_flpth_l = gunzip_out(tsvgz_flpth_l, tsv_dir)
-
-        # reorder TSVs
-        p = [5,3,4,2,0,1]
-        tsv_flpth_l = [tsv_flpth_l[i] for i in p]
-
-        # look at TSVs 
-        dprint(
-            'ls -lh %s/*' % tsv_dir,
-            #'file -i %s/*/*' % tsv_dir, 
-            run='cli'
-        )
-
-
-        #
-        ##
-        ### save FunctionalProfile objects
-        ####
-        #####
-
-        logging.info(
-            'Starting saving FunctionalProfiles if any (%s and %s)'
-            % (params.getd('create_amplicon_fps'), params.getd('create_sample_fps'))
-        )
-
-        if Var.debug:
-            FP_amp_mat_ref = params['amplicon_matrix_upa']  # this makes mocking more flexible in case something makes a fake UPA
-        else:
-            FP_amp_mat_ref = amp_mat_upa_new # this AmpliconMatrix is new one with new AttributeMapping
-
-        ## Metagenome FPs
-        if params.getd('create_sample_fps') is True :
-
-            Var.objects_created.append(dict(
-                ref=Var.fpu.import_func_profile(dict(
-                    workspace_id=Var.params['workspace_id'],
-                    func_profile_obj_name='%s.PICRUSt2_path_abun_unstrat' % amp_mat.name,
-                    original_matrix_ref=FP_amp_mat_ref,
-                    profile_file_path=tsv_flpth_l[0],
-                    profile_type='mg',
-                    profile_category='community',
-                    data_epistemology='predicted',
-                    epistemology_method='PICRUSt2',
-                    description='Metagenome MetaCyc abundance', 
-                ))['func_profile_ref'],
-                description='Metagenome MetaCyc abundance',
-            ))
-
-            Var.objects_created.append(dict(
-                ref=Var.fpu.import_func_profile(dict(
-                    workspace_id=Var.params['workspace_id'],
-                    func_profile_obj_name='%s.PICRUSt2_EC_pred_metagenome_unstrat' % amp_mat.name,
-                    original_matrix_ref=FP_amp_mat_ref,
-                    profile_file_path=tsv_flpth_l[1],
-                    profile_type='mg',
-                    profile_category='community',
-                    data_epistemology='predicted',
-                    epistemology_method='PICRUSt2',
-                    description='Metagenome EC abundance',
-                ))['func_profile_ref'],
-                description='Metagenome EC abundance',
-            ))
-
-            Var.objects_created.append(dict(
-                ref=Var.fpu.import_func_profile(dict(
-                    workspace_id=Var.params['workspace_id'],
-                    func_profile_obj_name='%s.PICRUSt2_KO_pred_metagenome_unstrat' % amp_mat.name,
-                    original_matrix_ref=FP_amp_mat_ref,
-                    profile_file_path=tsv_flpth_l[2],
-                    profile_type='mg',
-                    profile_category='community',
-                    data_epistemology='predicted',
-                    epistemology_method='PICRUSt2',
-                    description='Metagenome KO abundance',
-                ))['func_profile_ref'],
-                description='Metagenome KO abundance',
-            ))
-
-        ## Amplicon FPs ##
-        if params.getd('create_amplicon_fps') is True:
-
-            Var.objects_created.append(dict(
-                ref=Var.fpu.import_func_profile(dict(
-                    workspace_id=Var.params['workspace_id'],
-                    func_profile_obj_name='%s.PICRUSt2_path_abun_predictions' % amp_mat.name,
-                    original_matrix_ref=FP_amp_mat_ref,
-                    profile_file_path=tsv_flpth_l[3],
-                    profile_type='amplicon',
-                    profile_category='organism',
-                    data_epistemology='predicted',
-                    epistemology_method='PICRUSt2',
-                    description='Amplicon MetaCyc abundance',
-                ))['func_profile_ref'],
-                description='Amplicon MetaCyc abundance',
-            ))
-
-            Var.objects_created.append(dict(
-                ref=Var.fpu.import_func_profile(dict(
-                    workspace_id=Var.params['workspace_id'],
-                    func_profile_obj_name='%s.PICRUSt2_EC_predicted' % amp_mat.name,
-                    original_matrix_ref=FP_amp_mat_ref,
-                    profile_file_path=tsv_flpth_l[4],
-                    profile_type='amplicon',
-                    profile_category='organism',
-                    data_epistemology='predicted',
-                    epistemology_method='PICRUSt2',
-                    description='Amplicon EC abundance',
-                ))['func_profile_ref'],
-                description='Amplicon EC abundance',
-            ))
-     
-            Var.objects_created.append(dict(
-                ref=Var.fpu.import_func_profile(dict(
-                    workspace_id=Var.params['workspace_id'],
-                    func_profile_obj_name='%s.PICRUSt2_KO_predicted' % amp_mat.name,
-                    original_matrix_ref=FP_amp_mat_ref,
-                    profile_file_path=tsv_flpth_l[5],
-                    profile_type='amplicon',
-                    profile_category='organism',
-                    data_epistemology='predicted',
-                    epistemology_method='PICRUSt2',
-                    description='Amplicon KO abundance',
-                ))['func_profile_ref'],
-                description='Amplicon KO abundance',
-            ))
-
-
-
-
         #
         ##
         ### html report w/ heatmaps
@@ -424,20 +319,13 @@ class kb_PICRUSt2:
 
         logging.info('Beginning report business')
 
-        tsvgz_flpth_l = [
-            os.path.join(Var.out_dir, tsvgz_relflpth) 
-            for tsvgz_relflpth in list(Var.tsvgz_relflpth_l)
-        ]
-
         ##
         ## report
 
         Var.report_dir = os.path.join(Var.run_dir, 'report')
 
         report_html_flpth = report.HTMLReportWriter(
-            [cmd_pipeline, cmd_description], 
-            tsvgz_flpth_l,
-            Var.report_dir
+            [cmd_pipeline, cmd_description] + cmd_func_l, 
         ).write()
 
         html_links = [{
@@ -445,6 +333,87 @@ class kb_PICRUSt2:
             'name': os.path.basename(report_html_flpth),
         }]
 
+
+        #
+        ##
+        ### FunctionalProfile
+        ####
+        #####
+        logging.info('Starting saving FunctionalProfiles if any')
+
+        if Var.debug:
+            FP_amp_mat_ref = params['amplicon_matrix_upa']  # this makes mocking more flexible in case something makes a fake UPA
+        else:
+            FP_amp_mat_ref = amp_mat_upa_new # this AmpliconMatrix is new one with new AttributeMapping
+
+        # gunzip TSVs out to another directory
+        tsv_dir = os.path.join(Var.run_dir, 'decompressed_tsv')
+        os.mkdir(tsv_dir)
+
+        for func in Var.func_l:
+            if Var.func_2_cfg[func]['optional'] and not Var.params.getd(func):
+                continue
+
+            func_name = Var.func_2_cfg[func]['name']
+
+            if Var.params.getd('create_amplicon_fps'):
+                id = 'amplicon_' + func
+                desc = 'Amplicon %s abundance' % func_name
+
+                fp_src = os.path.join(Var.out_dir, Var.func_2_cfg[func]['relfp'][0])
+                fp_dst = os.path.join(tsv_dir, id + '.tsv')
+                gunzip(fp_src, fp_dst)
+                
+                upa = Var.fpu.import_func_profile(dict(
+                    workspace_id=Var.params['workspace_id'],
+                    func_profile_obj_name='%s.%s' % (Var.params['output_name'], id),
+                    original_matrix_ref=FP_amp_mat_ref,
+                    profile_file_path=fp_dst,
+                    profile_type='amplicon',
+                    profile_category='organism',
+                    data_epistemology='predicted',
+                    epistemology_method='PICRUSt2',
+                    description=desc, 
+                ))['func_profile_ref']
+
+                Var.objects_created.append(dict(
+                    ref=upa,
+                    description=desc
+                ))
+
+            if Var.params.getd('create_sample_fps'):
+                id = 'metagenome_' + func
+                desc = 'Metagenome %s abundance' % func_name
+
+                fp_src = os.path.join(Var.out_dir, Var.func_2_cfg[func]['relfp'][1])
+                fp_dst = os.path.join(tsv_dir, id + '.tsv')
+                gunzip(fp_src, fp_dst)
+                
+                upa = Var.fpu.import_func_profile(dict(
+                    workspace_id=Var.params['workspace_id'],
+                    func_profile_obj_name='%s.%s' % (Var.params['output_name'], id),
+                    original_matrix_ref=FP_amp_mat_ref,
+                    profile_file_path=fp_dst,
+                    profile_type='mg',
+                    profile_category='community',
+                    data_epistemology='predicted',
+                    epistemology_method='PICRUSt2',
+                    description=desc, 
+                ))['func_profile_ref']
+
+                Var.objects_created.append(dict(
+                    ref=upa,
+                    description=desc
+                ))
+
+
+
+        # look at TSVs 
+        dprint(
+            'ls -lh %s/*' % tsv_dir,
+            #'file -i %s/*/*' % tsv_dir, 
+            run='cli'
+        )
 
 
         #

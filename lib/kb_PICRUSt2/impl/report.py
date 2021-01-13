@@ -31,14 +31,14 @@ Max matrix dim lengths, (sometimes assuming squarishness as upper bound):
 
 ####################################################################################################
 ####################################################################################################
-def do_heatmap(tsv_flpth, html_flpth, axis_labels): # TODO log coloring for func x sample?
+def do_heatmap(tsv_fp, html_fp, axis_labels): # TODO log coloring for func x sample?
     '''
-    tsv_flpth: data to heatmap. it is a TSV GZ in PICRUSt2's Var.out_dir
-    html_flpth: where to write plotly html
+    tsv_fp: data to heatmap. it is a TSV GZ in PICRUSt2's Var.out_dir
+    html_fp: where to write plotly html
     '''
 
-    df = pd.read_csv(tsv_flpth, sep='\t', index_col=0) # default infer compression from file name extension
-    tsv_flnm = os.path.basename(tsv_flpth)
+    df = pd.read_csv(tsv_fp, sep='\t', index_col=0) # default infer compression from file name extension
+    tsv_flnm = os.path.basename(tsv_fp)
 
     ###
     ### subset
@@ -69,7 +69,7 @@ def do_heatmap(tsv_flpth, html_flpth, axis_labels): # TODO log coloring for func
     fig.update_layout(
         title=dict(
             text=(
-                os.path.basename(tsv_flpth) + '<br>' + 
+                os.path.basename(tsv_fp) + '<br>' + 
                 'shape%s=%s' % (
                     ('<sub>unsubset</sub>' if subset else ''),
                     original_shape,
@@ -85,7 +85,7 @@ def do_heatmap(tsv_flpth, html_flpth, axis_labels): # TODO log coloring for func
     ###
     ###
     fig.write_html(
-        html_flpth,
+        html_fp,
     )
 
     
@@ -98,26 +98,25 @@ def do_heatmap(tsv_flpth, html_flpth, axis_labels): # TODO log coloring for func
 ####################################################################################################
 ####################################################################################################
 class HTMLReportWriter:
+    '''
+    Needs to know Var.report_dir
+    '''
 
 
 ####################################################################################################
 ####################################################################################################
-    def __init__(self, cmd_l, tsv_flpth_l, report_dir): 
+    def __init__(self, cmd_l): 
         '''
-        tsv_flpth_l should have TSVs corresponding to Var.id_l etc.
         '''
 
         self.replacement_d = {}
 
         #
-        self.tsv_flpth_l = tsv_flpth_l
         self.cmd_l = cmd_l
 
-        #
-        if not os.path.exists(report_dir):
-            os.mkdir(report_dir)
+        if not os.path.exists(Var.report_dir):
+            os.mkdir(Var.report_dir)
 
-        self.report_dir = report_dir
 
 
 ####################################################################################################
@@ -140,35 +139,51 @@ class HTMLReportWriter:
 ####################################################################################################
     def _compile_figures(self):
 
-        #
-        html_flpth_l = [
-            os.path.join(self.report_dir, fig_id + '.html') 
-            for fig_id in Var.id_l
-        ]
-       
-        #
-        for flpth_tup in zip(self.tsv_flpth_l, html_flpth_l, Var.axis_labels):
-            do_heatmap(*flpth_tup)
 
 
-        # tabcontent divs with iframes
-        txt = ''
-        for fig_id, html_flpth in zip(Var.id_l, html_flpth_l):
-            txt += (
-                '<div id="%s" class="tabcontent" %s>\n'
-                '<iframe src="%s" '
-                'scrolling="no" seamless="seamless"'
-                '></iframe>\n'
-                '</div>\n\n'
-                % (
-                    fig_id,
-                    ('style="display:inline-flex;"' if fig_id == 'metagenome_metacyc' else ''),
-                    os.path.basename(html_flpth),
+        button_l = []
+        content_l = []
+        for per in ['amplicon', 'metagenome']:
+            for func in Var.func_l:
+                if Var.func_2_cfg[func]['optional'] and not Var.params.getd(func):
+                    continue
+
+
+                fig_id = per + '_' + func
+                func_name = Var.func_2_cfg[func]['name']
+                fig_title = per.title() + ' ' + func_name
+
+                ind = 0 if per=='amplicon' else 1
+                tsv_fp = os.path.join(Var.out_dir, Var.func_2_cfg[func]['relfp'][ind])
+                html_fp = os.path.join(Var.report_dir, fig_id + '.html')
+
+                axis_labels = (
+                    ('amplicon', func_name) if per=='amplicon' else
+                    (func_name, 'sample')
                 )
-            )
 
+                do_heatmap(tsv_fp, html_fp, axis_labels)
 
-        self.replacement_d['HEATMAPS_TAG'] = txt
+                button_l.append(
+                    '''<button class="tablinks %s" onclick="openTab(event, '%s')">%s</button>'''  
+                    % (
+                        'active' if fig_id == 'metagenome_metacyc' else '',
+                        fig_id, 
+                        fig_title,
+                    ) 
+                )
+
+                content_l.append(
+                    '<div id="%s" class="tabcontent" %s>\n' % (
+                        fig_id,
+                        ('style="display:inline-flex;"' if fig_id == 'metagenome_metacyc' else ''),
+                    ) +
+                    '<iframe src="%s" scrolling="no" seamless="seamless"></iframe>\n' % os.path.basename(html_fp) +
+                    '</div>\n'
+                )
+
+        self.replacement_d['HEATMAP_BUTTON_TAG'] = '\n'.join(button_l)
+        self.replacement_d['HEATMAP_CONTENT_TAG'] = '\n'.join(content_l)
 
 
 ####################################################################################################
@@ -179,18 +194,19 @@ class HTMLReportWriter:
 
         
         REPORT_HTML_TEMPLATE_FLPTH = '/kb/module/lib/kb_PICRUSt2/template/report.html'
-        html_flpth = os.path.join(self.report_dir, 'report.html')
+        html_fp = os.path.join(Var.report_dir, 'report.html')
 
-        with open(REPORT_HTML_TEMPLATE_FLPTH, 'r') as src_fp:
-            with open(html_flpth, 'w') as dst_fp:
-                for line in src_fp:
-                    if line.strip() in self.replacement_d:
-                        dst_fp.write(self.replacement_d[line.strip()].strip() + '\n')
+        with open(REPORT_HTML_TEMPLATE_FLPTH, 'r') as src_fh:
+            with open(html_fp, 'w') as dst_fh:
+                for line in src_fh:
+                    s = line.strip()
+                    if s in self.replacement_d:
+                        dst_fh.write(self.replacement_d[s].strip() + '\n')
                     else:
-                        dst_fp.write(line)
+                        dst_fh.write(line)
         
 
-        return html_flpth
+        return html_fp
 
 
 

@@ -8,29 +8,152 @@ pd.set_option('display.width', 1000)
 pd.set_option('display.max_colwidth', 20)
 
 
-_config = DotMap({
-    'debug': True, # toggle for app-global debug behavior
+_config = DotMap(
+    debug=True, # toggle for app-global debug behavior
 
 #-------- my file stuff -------------------------------------------------------------------------------    
 
-    'amplicon_header_name': 'Amplicon_Id', # amplicon index/header name for tables and TSV
+    amplicon_header_name='Amplicon_Id', # amplicon index/header name for tables and TSV
 
 #-------- PICRUSt2 files ---------------------------------------------------------------------------
 
-    'metacyc_pathway_code2desc_tsvgz': 
+    metacyc_pathway_code2desc_tsvgz=
         '/miniconda/envs/picrust2/lib/python3.6/site-packages/picrust2/default_files/description_mapfiles/metacyc_pathways_info.txt.gz', 
-    'picrust2_pipeline_flpth': '/miniconda/envs/picrust2/bin/picrust2_pipeline.py',
+    picrust2_pipeline_flpth='/miniconda/envs/picrust2/bin/picrust2_pipeline.py',
 
 #-------- these file names/paths should all be in corresponding order ------------------------------
 
-    'id_l': [
+    func_l=[ # controls order in FP creation and TSV viz
+        'cog',
+        'ec',
+        'ko',
+        'pfam',
+        'tigrfam',
+        'pheno',
+        'metacyc',
+    ],
+
+    func_2_cfg=dict( 
+        cog=dict(
+            name='COG',
+            relfp=[
+                'COG_predicted.tsv.gz',
+                'COG_metagenome_out/pred_metagenome_unstrat.tsv.gz',
+            ],
+            optional=True,
+        ),      
+
+        ec=dict(
+            name='EC',
+            relfp=[
+                'EC_predicted.tsv.gz',
+                'EC_metagenome_out/pred_metagenome_unstrat.tsv.gz',
+            ],
+            optional=False,
+        ),
+
+        ko=dict(
+            name='KO',
+            relfp=[
+                'KO_predicted.tsv.gz',
+                'KO_metagenome_out/pred_metagenome_unstrat.tsv.gz',
+            ],
+            optional=False,
+        ),
+
+        pfam=dict(
+            name='Pfam',
+            relfp=[
+                'PFAM_predicted.tsv.gz',
+                'PFAM_metagenome_out/pred_metagenome_unstrat.tsv.gz',
+            ],
+            optional=True,
+        ),
+
+        tigrfam=dict(
+            name='TIGRFAMs',
+            relfp=[
+                'TIGRFAM_predicted.tsv.gz',
+                'TIGRFAM_metagenome_out/pred_metagenome_unstrat.tsv.gz',
+            ],
+            optional=True,
+        ),
+
+        pheno=dict(
+            name='IMG phenotype',
+            relfp=[
+                'PHENO_predicted.tsv.gz',
+                'PHENO_metagenome_out/pred_metagenome_unstrat.tsv.gz',
+            ],
+            optional=True,
+        ),
+
+        metacyc=dict(
+            name='MetaCyc',
+            relfp=[
+                'pathways_out/path_abun_predictions.tsv.gz',
+                'pathways_out/path_abun_unstrat.tsv.gz',
+            ],
+            optional=False,
+  
+        ),
+
+
+
+    ),
+
+)
+
+Var = DotMap(_config) # app-wide globals container
+
+def reset_Var():
+    Var.clear()
+    Var.update(_config)
+
+
+
+
+
+'''
+TSVs are:
+
+'pathways_out/path_abun_unstrat.tsv', # most important to workflow
+'pathways_out/path_abun_unstrat_per_seq.tsv',
+'pathways_out/path_abun_predictions.tsv',
+'EC_predicted.tsv', # 100M
+'KO_predicted.tsv', # 358M (Ginormo)
+'EC_metagenome_out/pred_metagenome_unstrat.tsv',
+'KO_metagenome_out/pred_metagenome_unstrat.tsv',
+
+
+
+
+
+
+    'id_l': [ # this one holds ordering info
         'amplicon_ko',
         'amplicon_ec',
         'amplicon_metacyc',
+        #'amplicon_cog',
+        #'amplicon_pfam',
+        #'amplicon_tigrfam',
+        #'amplicon_pheno',
         'metagenome_ko',
         'metagenome_ec',
         'metagenome_metacyc',
+        #'metagenome_cog',
+        #'metagenome_pfam',
+        #'metagenome_tigrfam',
+        #'metagenome_pheno',
     ],
+
+    'optional_l' = [
+        'cog',
+        'pfam',
+        'tigrfam',
+        'pheno',
+    ],
+
     'tsvgz_relflpth_l': [
         'KO_predicted.tsv.gz',
         'EC_predicted.tsv.gz',
@@ -59,28 +182,16 @@ _config = DotMap({
         'metagenome_metacyc': ('MetaCyc pathway', 'sample ID'),
     },
 
-})
-
-Var = DotMap(_config) # app-wide globals container
-
-def reset_Var():
-    Var.clear()
-    Var.update(_config)
 
 
 
 
 
-'''
-TSVs are:
 
-'pathways_out/path_abun_unstrat.tsv', # most important to workflow
-'pathways_out/path_abun_unstrat_per_seq.tsv',
-'pathways_out/path_abun_predictions.tsv',
-'EC_predicted.tsv', # 100M
-'KO_predicted.tsv', # 358M (Ginormo)
-'EC_metagenome/pred_metagenome_unstrat.tsv',
-'KO_metagenome/pred_metagenome_unstrat.tsv',
+
+
+
+
 '''
 
 

@@ -1,7 +1,7 @@
 #
 # define display information
 #
-name: Predict prokaryote EC, KO, & MetaCyc function abundances with PICRUSt2 v2.3.0_b
+name: Predict prokaryote EC, KO, & MetaCyc function abundances with PICRUSt2 - v2.3.0_b
 
 tooltip: |
     Predict prokaryote EC, KO, & MetaCyc function abundances per genome or metagenome, given 16S sequence abundance matrix
@@ -29,6 +29,26 @@ parameters :
             AmpliconMatrix
         short-hint : |
             Input object of type <code>AmpliconMatrix</code>
+    cog:
+        ui-name: |
+            COG
+        short-hint: |
+            COG
+    pfam:
+        ui-name: |
+            Pfam
+        short-hint: |
+            Pfam
+    tigrfam:
+        ui-name: |
+            TIGRFAMs
+        short-hint: |
+            TIGRFAMs
+    pheno:
+        ui-name: |
+            IMG phenotype
+        short-hint: |
+            IMG phenotype
     create_amplicon_fps:
         ui-name: |
             Create amplicon FunctionalProfiles
@@ -43,13 +63,18 @@ parameters :
         ui-name: |
             Output AmpliconMatrix name
         short-hint: |
-            Output AmpliconMatrix name. Enter new name to avoid saving over
+            Output AmpliconMatrix name
 parameter-groups:
     fp_options:
         ui-name: |
             FunctionalProfile options
         short-hint: |
-            FunctionalProfile options. Uncheck these to avoid creation of up to 6 <code>FunctionalProfile</code> objects
+            FunctionalProfile options
+    functions:
+        ui-name: |
+            Additional functions
+        short-hint:
+            Functions in addition to default KO, EC, & MetaCyc
 
 description : |
 
@@ -171,6 +196,17 @@ publications: # got most citations from the PICRUSt2 paper
             Ron Caspi, Richard Billington, Luciana Ferrer, Hartmut Foerster, Carol A. Fulcher, Ingrid M. Keseler, Anamika Kothari, Markus Krummenacker, Mario Latendresse, Lukas A. Mueller, Quang Ong, Suzanne Paley, Pallavi Subhraveti, Daniel S. Weaver, Peter D. Karp, The MetaCyc database of metabolic pathways and enzymes and the BioCyc collection of pathway/genome databases, Nucleic Acids Research, Volume 44, Issue D1, 4 January 2016, Pages D471–D480,
         link: |
             https://doi.org/10.1093/nar/gkv1164
+
+    -
+        # IMG phenotype
+        display-text: |
+            Chen, I.-M. A. et al. PLoS One 8, e54859 (2013).
+        link: |
+            https://doi.org/10.1371%2Fjournal.pone.0054859
+
+        # COG
+        # TIGRfam
+        # Pfam
 
     -
         # plotly

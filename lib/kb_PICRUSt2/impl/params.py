@@ -22,27 +22,48 @@ class Params:
 
 
     DEFAULTS = {
+        'cog': 0,
+        'pfam': 0,
+        'tigrfam': 0,
+        'pheno': 0,
         'create_amplicon_fps': True,
         'create_sample_fps': True,
     }
 
+
+    ALL = [
+        'amplicon_matrix_upa',
+        'output_name',
+        #---
+        'functions',
+        'fp_options',
+        #---
+        'create_amplicon_fps', 
+        'create_sample_fps',
+        'cog',
+        'pfam',
+        'tigrfam',
+        'pheno',
+        #---
+        'workspace_id',
+        'workspace_name',
+    ]
+
     def __init__(self, params):
 
-        ## Flatten right away ##
-        params = flatten(params)
-
-        ## Validation
         self._validate(params)
-
+        params = flatten(params)
         
         ## Custom transformations to internal state ##
-        ## This is kind of silly ##
-        ## But the code is written before I figure out how the narrative passes things ##
-
-        if type(params.get('create_amplicon_fps')) is int:
-            params['create_amplicon_fps'] = True if params['create_amplicon_fps'] == 1 else False
-        if type(params.get('create_sample_fps')) is int:
-            params['create_sample_fps'] = True if params['create_sample_fps'] == 1 else False
+        for param in [
+            'create_amplicon_fps',
+            'create_sample_fps',
+            'cog',
+            'pfam',
+            'tigrfam',
+            'pheno',
+        ]:
+            self._rep_as_bool(params, param)
        
         ##
         self.params = params
@@ -54,17 +75,12 @@ class Params:
         '''
         # TODO
 
-        VALID = [
-            'amplicon_matrix_upa',
-            'create_amplicon_fps', 'create_sample_fps',
-            #---
-            'output_name',
-            'workspace_id',
-            'workspace_name',
-        ]
-
         for p in params:
-            if p not in VALID:
+            if p not in self.ALL:
+                raise Exception(p)
+
+        for p in flatten(params):
+            if p not in self.ALL:
                 raise Exception(p)
 
 
@@ -87,6 +103,8 @@ class Params:
         '''
         if key not in self.DEFAULTS:
             raise Exception('`params.getd(x)` only applicable to params with defaults')
+        if key not in self.ALL:
+            raise Exception('Not a valid param')
 
         return self.params.get(key, self.DEFAULTS[key])
 
@@ -95,3 +113,7 @@ class Params:
         return 'Wrapper for params:\n%s' % (json.dumps(self.params, indent=4))
 
 
+    @staticmethod
+    def _rep_as_bool(params, param) -> None:
+        if type(params.get(param)) is int:
+            params[param] = True if params[param] == 1 else False

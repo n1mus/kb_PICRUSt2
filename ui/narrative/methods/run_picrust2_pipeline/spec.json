@@ -11,6 +11,18 @@
     },
     "parameter-groups": [
         {
+            "id": "functions",
+            "parameters": [
+                "cog",
+                "pfam",
+                "tigrfam",
+                "pheno"
+            ],
+            "optional": false,
+            "advanced": true,
+            "allow_multiple": false,
+            "with_border": true
+        },{
             "id": "fp_options",
             "parameters": [
                 "create_amplicon_fps",
@@ -32,6 +44,50 @@
             "field_type": "text",
             "text_options": {
                 "valid_ws_types": ["KBaseMatrices.AmpliconMatrix"]
+            }
+        },{
+            "id": "cog",
+            "optional": true,
+            "advanced": false,
+            "allow_multiple": false,
+            "default_values": ["0"],
+            "field_type": "checkbox",
+            "checkbox_options": {
+                "unchecked_value": 0,
+                "checked_value": 1
+            }
+        },{
+            "id": "pfam",
+            "optional": true,
+            "advanced": false,
+            "allow_multiple": false,
+            "default_values": ["0"],
+            "field_type": "checkbox",
+            "checkbox_options": {
+                "unchecked_value": 0,
+                "checked_value": 1
+            }
+        },{
+            "id": "pheno",
+            "optional": true,
+            "advanced": false,
+            "allow_multiple": false,
+            "default_values": ["0"],
+            "field_type": "checkbox",
+            "checkbox_options": {
+                "unchecked_value": 0,
+                "checked_value": 1
+            }
+        },{
+            "id": "tigrfam",
+            "optional": true,
+            "advanced": false,
+            "allow_multiple": false,
+            "default_values": ["0"],
+            "field_type": "checkbox",
+            "checkbox_options": {
+                "unchecked_value": 0,
+                "checked_value": 1
             }
         },{
             "id": "create_amplicon_fps",
@@ -84,6 +140,9 @@
                     "input_parameter": "amplicon_matrix_upa",
                     "target_property": "amplicon_matrix_upa",
                     "target_type_transform": "resolved-ref"
+                },{
+                    "input_parameter": "functions",
+                    "target_property": "functions"
                 },{
                     "input_parameter": "fp_options",
                     "target_property": "fp_options"

@@ -29,13 +29,9 @@ ENV PYTHONUNBUFFERED=True
 
 RUN apt-get install --yes vim
 
-
 RUN pip install -U kaleido
-
 RUN pip install numpy==1.19.2 # this version produces no warnings in this context
-
 RUN pip install pipenv coverage pytest-cov python-coveralls flake8
-
 
 # -----------------------------------------
 

@@ -164,7 +164,7 @@ class kb_PICRUSt2Test(config.BaseTest):
     @patch_('kb_PICRUSt2.kb_PICRUSt2Impl.DataFileUtil', new=lambda u: get_mock_dfu('userTest'))
     @patch_('kb_PICRUSt2.kb_PICRUSt2Impl.GenericsAPI', new=lambda *a, **k: get_mock_gapi('userTest'))
     @patch_('kb_PICRUSt2.kb_PICRUSt2Impl.run_check', new=get_mock_run_check('userTest'))
-    @patch_('kb_PICRUSt2.kb_PICRUSt2Impl.FunctionalProfileUtil', new=lambda *a, **k: get_mock_fpu(''))
+    #@patch_('kb_PICRUSt2.kb_PICRUSt2Impl.FunctionalProfileUtil', new=lambda *a, **k: get_mock_fpu(''))
     @patch_('kb_PICRUSt2.kb_PICRUSt2Impl.KBaseReport', new=lambda u: get_mock_kbr())
     def test_userTest_data(self):
         ret = config.get_serviceImpl().run_picrust2_pipeline(
@@ -172,12 +172,18 @@ class kb_PICRUSt2Test(config.BaseTest):
                 **config.get_ws(),
                 'amplicon_matrix_upa': userTest,
                 'fp_options': {
-                    'create_amplicon_fps': True,
-                    'create_sample_fps': True,
+                    'create_amplicon_fps': 1,
+                    'create_sample_fps': 1,
+                },
+                'functions': {
+                    'cog': 1,
+                    'pfam': 1,
+                    'tigrfam': 1,
+                    'pheno': 1,
                 },
                 'output_name': 'an_output_name',
             })
-        self.assertTrue(len(Var.objects_created) == 6, Var.objects_created) 
+        self.assertTrue(len(Var.objects_created) == 16, Var.objects_created) 
 
 #!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 #!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
