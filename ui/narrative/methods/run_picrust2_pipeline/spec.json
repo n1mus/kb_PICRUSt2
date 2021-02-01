@@ -119,10 +119,10 @@
             "optional": true,
             "advanced": false,
             "allow_multiple": false,
-            "default_values": ["0"],
+            "default_values": ["1"],
             "field_type": "checkbox",
             "checkbox_options": {
-                "unchecked_value": 1,
+                "unchecked_value": 0,
                 "checked_value": 1
             }
         },{

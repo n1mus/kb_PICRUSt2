@@ -4,7 +4,7 @@
 name: Predict prokaryote EC, KO, & MetaCyc function abundances with PICRUSt2 - v2.3.0_b
 
 tooltip: |
-    Predict prokaryote EC, KO, & MetaCyc function abundances per genome or metagenome, given 16S sequence abundance matrix
+    Given 16S sequence abundance matrix, predict prokaryote EC, KO, MetaCyc, or other function abundances, per genome or metagenome
 
 screenshots: []
 
@@ -101,7 +101,7 @@ description : |
     then sums amplicon abundances corrected by 16S abundance 
     and weighted by gene copy numbers per amplicon 
     to get function abundances per sample.
-    MetaCyc function abundances are calculated from EC abundances. 
+    MetaCyc pathway function abundances are computed from EC abundances. 
     </p>
 
     <!--------------------------------------------------------------------------------------------->
@@ -117,7 +117,8 @@ description : |
     PICRUSt2 may drop amplicons, accounting for dissimilarity to its reference genomes, at two steps.
     (1) When aligning the marker gene sequences to the reference sequences before building a tree,
     and thus before any tables are output, amplicons can be dropped for poor alignment.
-    (2) Before calculating the metagenome functional abundance matrices, any sequence that is
+    (2) Before computing the pathway or metagenome functional abundance matrices, 
+    any sequence that is
     above a distance criterion from the reference sequences in the tree is dropped.
     </p>
 

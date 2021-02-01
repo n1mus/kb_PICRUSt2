@@ -8,15 +8,14 @@ import sys
 import time
 import plotly
 import plotly.graph_objects as go
-import traceback
-import retrying
 import itertools
 
 from .config import Var
 from ..util.debug import dprint
 
 REPORT_HEIGHT = 800 # px
-MAX_DYN_LEN = 500
+MAX_TOTAL_DATA = 4000
+MAX_DYN_LEN = 400
 #MAX_DYN_SIZE = MAX_DYN_LEN ** 2
 
 '''
@@ -28,8 +27,8 @@ Max matrix dim lengths, (sometimes assuming squarishness as upper bound):
 
 # TODO test things like empty df, large ..
 # TODO full function in hover? too much data ...
-
-'FAPROTAX Functions <taxonomy="RDP Clsf Taxonomy, <gene="ssu", minWords="default", conf=0.8>">'
+# TODO log coloring for large differential ... or keep all uniform scale?
+# TODO dynamically determine max tsv dims
 
 ####################################################################################################
 ####################################################################################################
@@ -77,17 +76,20 @@ def do_heatmap(tsv_fp, html_fp, axis_labels): # TODO log coloring for func x sam
     fig.update_layout(
         title=dict(
             text=(
-                os.path.basename(tsv_fp) + '<br>' + 
-                'shape%s=%s' % (
+                'Shape%s=%s' % (
                     ('<sub>unsubset</sub>' if subset else ''),
                     original_shape,
                 )
+            ),
+            font=dict(
+                size=14, # make label size since it's not cartoonish title so much as more info
             ),
             x=0.5,
         ),
         xaxis_title=axis_labels[1],
         yaxis_title=axis_labels[0],
         xaxis_tickangle=45,
+        margin_t=40,
     )
 
     ###
@@ -166,8 +168,8 @@ class HTMLReportWriter:
                 html_fp = os.path.join(Var.report_dir, fig_id + '.html')
 
                 axis_labels = (
-                    ('amplicon', func_name) if per=='amplicon' else
-                    (func_name, 'sample')
+                    ('Amplicon', func_name) if per=='amplicon' else
+                    (func_name, 'Sample')
                 )
 
                 do_heatmap(tsv_fp, html_fp, axis_labels)
